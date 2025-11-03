@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
-import {Board} from './App.tsx'
+import './css/index.css'
+import { Header } from './components/header.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Board />
+    <Header title="Metrics"/>
   </StrictMode>,
 )
