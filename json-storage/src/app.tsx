@@ -6,7 +6,7 @@ import { Sidebar } from './components/sidebar.tsx'
 import { useState } from 'react'
 
 export function App() {
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
 
   return (
     <div>

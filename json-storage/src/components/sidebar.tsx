@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 export function Sidebar({
     isVisible,
     onClose
@@ -5,6 +7,13 @@ export function Sidebar({
     isVisible: boolean;
     onClose: () => void;
 }){
+    const namespaces = [
+        "namespace-1",
+        "namespace-2",
+        "namespace-3",
+        "namespace-4"
+    ];
+
     return (
         <div className={`sidebar-container ${isVisible ? '' : 'sidebar-hidden'}`}>
             <div className="sidebar-top">
@@ -15,8 +24,49 @@ export function Sidebar({
             <div className="sidebar-bottom">
                 <Button title="Metrics"/>
                 <Button title="Logs"/>
-                <Button title="Namespaces"/>
+                <NamespacesButton namespaces={namespaces} />
             </div>
+        </div>
+    );
+}
+
+function NamespacesButton( { namespaces }: {namespaces: string[] } ) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const toggleDropdown = () => {
+        setIsOpen(!isOpen);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (isOpen && !(event.target as Element).closest('.namespaces-container')) {
+                setIsOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    return (
+        <div className="namespaces-container">
+            <button type="button" className="sidebar-button" onClick={toggleDropdown}>
+                Namespaces
+            </button>
+
+            {isOpen && (
+                <div className="namespaces-dropdown">
+                    {namespaces.map((namespace, index) => (
+                        <button key={index} 
+                        className="namespace-item"
+                        onClick={() => {
+                            console.log(`Selected namespace: ${namespace}`);
+                        }}>
+                            {namespace}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
