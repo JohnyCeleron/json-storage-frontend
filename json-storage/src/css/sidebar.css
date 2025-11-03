@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap');
+
+
 .sidebar-container {
     position: fixed;
     top: 0;
@@ -28,11 +31,17 @@
 .sidebar-bottom {
     flex: 1; /* Занимает всё оставшееся пространство */
     background-color: #2d2d2d;
+    padding-top: 10px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: top;
+    justify-content: top;
     border-bottom-right-radius: 7px;
+    gap: 10px;
+    flex-direction: column;
+    outline: none;
 }
+
+/*CLOSE BUTTON*/
 
 .close-button:focus {
     outline: none;
@@ -64,4 +73,28 @@
   transform: rotate(45deg);
   font-size: 18px; /* уменьшили соответственно */
   line-height: 1;
+}
+
+/*OTHER BUTTONS*/
+
+.sidebar-button {
+    background: #343434;
+    height: 30px;
+    border-radius: 7px;
+    color: #a1a1a1;
+    font-family: 'Afacad', sans-serif;
+    font-size: 16px;
+    border: none;
+}
+
+.sidebar-button:focus-visible {
+  box-shadow: none;
+}
+
+.sidebar-button:hover {
+    background-color: #232323;
+}
+
+.sidebar-button:focus {
+    outline: none;
 }

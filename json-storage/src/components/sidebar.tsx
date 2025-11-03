@@ -13,8 +13,18 @@ export function Sidebar({
                 </button>
             </div>
             <div className="sidebar-bottom">
-                Содержимое сайдбара
+                <Button title="Metrics"/>
+                <Button title="Logs"/>
+                <Button title="Namespaces"/>
             </div>
         </div>
+    );
+}
+
+function Button({ title }: {title: string}) {
+    return (
+        <button type="button" className="sidebar-button">
+            {title}
+        </button>
     );
 }
