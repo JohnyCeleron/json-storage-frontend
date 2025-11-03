@@ -1,0 +1,67 @@
+.sidebar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 100vh;
+    color: #a1a1a1;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease-in-out;
+}
+
+.sidebar-hidden {
+    transform: translateX(-100%); /* уезжает за левый край */
+}
+
+.sidebar-top {
+    height: 32px; /* Фиксированная высота */
+    background-color: #1d1d1d;
+    display: flex;
+    flex-shrink: 0; /* Чтобы не сжималась */
+    border-top-right-radius: 7px;
+    justify-content: flex-end; /* ← ДОБАВЬТЕ ЭТУ СТРОЧКУ */
+    align-items: center; /* ← и эту для вертикального выравнивания */
+    padding-right: 7px;
+}
+
+.sidebar-bottom {
+    flex: 1; /* Занимает всё оставшееся пространство */
+    background-color: #2d2d2d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom-right-radius: 7px;
+}
+
+.close-button:focus {
+    outline: none;
+}
+
+.close-button:focus-visible {
+  box-shadow: none;
+}
+
+.close-button:hover {
+    background: black;
+}
+
+.close-button {
+    color: #4c4c4c;
+    background-color: #1d1d1d;
+    width: 18px; /* компромиссный размер */
+    height: 18px;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100%;
+    border: none;
+}
+
+.close-glyph {
+  display: block;
+  transform: rotate(45deg);
+  font-size: 18px; /* уменьшили соответственно */
+  line-height: 1;
+}

@@ -1,45 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap');
 
-.hdr {
-  display: grid;
-  grid-template-columns: 40px 1fr 40px; /* бургер | центр | симметричный столбец справа */
-  align-items: center;
-  height: 30px;
-  padding: 0 8px;
-  background: #b3b3b3;
-  border: 1px solid #b3b3b3;
-}
-
 body {
   background-color: #eaeaea;
   margin: 0;
   font-family: 'Afacad', sans-serif;
 }
 
-/* Центрируем текст в среднем столбце */
-.hdr__title {
-  grid-column: 2;
-  text-align: center;
-  font-weight: normal;
-  font-size: 15px;
-  color: white;  
-}
-
-/* Аккуратная квадратная кнопка с иконкой */
-.hdr__burger {
-  aspect-ratio: 1 / 1;
-  grid-column: 1;
-  width: 23px;
-  height: 23px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #4a4a4a;
-  border-radius: 7px;
-  background: #a9a9a9;
-  cursor: pointer;
-  padding: 0;
-}
-
-.hdr__burger:hover { background: #979797; }
-.hdr__burger:focus-visible { box-shadow: 0 0 0 3px rgba(47,128,237,.35); }
-.hdr__burger svg rect { fill: #4a4a4a; }

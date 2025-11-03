@@ -1,0 +1,40 @@
+.header-container {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px; /* бургер | центр | симметричный столбец справа */
+  align-items: center;
+  height: 30px;
+  padding: 0 8px;
+  background: #b3b3b3;
+  border: 1px solid #b3b3b3;
+}
+
+/* Центрируем текст в среднем столбце */
+.header-title {
+  grid-column: 2;
+  text-align: center;
+  font-weight: normal;
+  font-size: 15px;
+  color: white;  
+}
+
+/* Аккуратная квадратная кнопка с иконкой */
+.header-burger-button {
+  aspect-ratio: 1 / 1;
+  grid-column: 1;
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #4a4a4a;
+  border-radius: 7px;
+  background: #a9a9a9;
+  cursor: pointer;
+  padding: 0;
+}
+
+.header-burger-button:hover { 
+  background: #979797;
+  transform: translateY(-1px);
+}
+.header-burger-button:focus-visible { box-shadow: 0 0 0 3px rgba(47,128,237,.35); }
+.header-burger-button svg rect { fill: #4a4a4a; }
