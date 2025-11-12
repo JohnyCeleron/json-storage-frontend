@@ -41,6 +41,7 @@ export function Sidebar({
 
 function NamespacesButton( { namespaces }: {namespaces: string[] } ) {
     const [isOpen, setIsOpen] = useState(false);
+    const navigate = useNavigate();
 
     const toggleDropdown = () => {
         setIsOpen(!isOpen);
@@ -69,7 +70,7 @@ function NamespacesButton( { namespaces }: {namespaces: string[] } ) {
                         <button key={index} 
                         className="namespace-item"
                         onClick={() => {
-                            console.log(`Selected namespace: ${namespace}`);
+                            navigate(`/namespaces/${namespace}`);
                         }}>
                             {namespace}
                         </button>
