@@ -4,14 +4,16 @@ import '../css/sidebar.css'
 import { Header } from '../components/header.tsx';
 import { Sidebar } from '../components/sidebar.tsx';
 import { useState, useEffect } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams} from 'react-router-dom';
 import { mockDB } from '../mocks/namespace.mocks.ts';
+import { LoadingSpinner } from '../components/load-spinner.tsx';
+import { LoadPage } from './LoadPage.tsx';
 
 
 // Функция имитации сетевого запроса
 const fetchNamespaceData = async (namespace: string) => {
     // Имитация задержки сети
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 8000));
     
     
     if (mockDB.has(namespace)) {
@@ -31,16 +33,10 @@ export function NamespacePage() {
 
     useEffect(() => {
         const loadNamespaceData = async () => {
-            if (!namespace) {
-                setError('Namespace not specified');
-                setIsLoading(false);
-                return;
-            }
-
             try {
                 setIsLoading(true);
                 setError(null);
-                const data = await fetchNamespaceData(namespace);
+                const data = await fetchNamespaceData(namespace!);
                 setNamespaceData(data);
             } catch (err) {
                 setError('Namespace not found');
@@ -53,33 +49,23 @@ export function NamespacePage() {
         loadNamespaceData();
     }, [namespace]);
 
+     useEffect(() => {
+        setIsSidebarVisible(false);
+    }, [namespace]);
+
+    const title: string = `Namespaces | ${namespace}`;
+
     // Показываем загрузку
     if (isLoading) {
-        return (
-            <div>
-                <Header 
-                    title={`Namespaces | ${namespace}`} 
-                    onBurgerClick={() => setIsSidebarVisible(!isSidebarVisible)} 
-                />
-                <Sidebar 
-                    isVisible={isSidebarVisible} 
-                    onClose={() => setIsSidebarVisible(false)} 
-                />
-                <main className={`main-content ${isSidebarVisible ? 'with-sidebar' : ''}`}>
-                    <div className="page">
-                        <div className="loading-container">
-                            <div className="loading-spinner"></div>
-                            <p>Загрузка документов namespace...</p>
-                        </div>
-                    </div>
-                </main>
-            </div>
-        );
+        return <LoadPage title={title} 
+        isSidebarVisible={isSidebarVisible}
+        onBurgerClick={() => setIsSidebarVisible(!isSidebarVisible)}
+        onClose={() => setIsSidebarVisible(false)}/>;
     }
 
     // Если namespace не найден - редирект на 404
     if (error) {
-        return <Navigate to="/404" replace />;
+        return null;
     }
 
     return (

@@ -16,7 +16,6 @@ export function Sidebar({
     onClose: () => void;
 }){
     const navigate = useNavigate();
-
     return (
         <div className={`sidebar-container ${isVisible ? '' : 'sidebar-hidden'}`}>
             <div className="sidebar-top">
@@ -69,9 +68,7 @@ function NamespacesButton( { namespaces }: {namespaces: string[] } ) {
                     {namespaces.map((namespace, index) => (
                         <button key={index} 
                         className="namespace-item"
-                        onClick={() => {
-                            navigate(`/namespaces/${namespace}`);
-                        }}>
+                        onClick={() => navigate(`/namespaces/${namespace}`)}>
                             {namespace}
                         </button>
                     ))}
