@@ -1,4 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
+export const namespaces = [
+        "namespace-1",
+        "namespace-2",
+        "namespace-3",
+        "namespace-4"
+];
 
 export function Sidebar({
     isVisible,
@@ -7,12 +15,7 @@ export function Sidebar({
     isVisible: boolean;
     onClose: () => void;
 }){
-    const namespaces = [
-        "namespace-1",
-        "namespace-2",
-        "namespace-3",
-        "namespace-4"
-    ];
+    const navigate = useNavigate();
 
     return (
         <div className={`sidebar-container ${isVisible ? '' : 'sidebar-hidden'}`}>
@@ -22,8 +25,14 @@ export function Sidebar({
                 </button>
             </div>
             <div className="sidebar-bottom">
-                <Button title="Metrics"/>
-                <Button title="Logs"/>
+                <Button 
+                    title="Metrics"
+                    onClick={() => navigate('/metrics')}
+                />
+                <Button 
+                    title="Logs"
+                    onClick={() => navigate('/logs')}
+                />
                 <NamespacesButton namespaces={namespaces} />
             </div>
         </div>
@@ -71,9 +80,9 @@ function NamespacesButton( { namespaces }: {namespaces: string[] } ) {
     );
 }
 
-function Button({ title }: {title: string}) {
+function Button({ title, onClick }: {title: string, onClick?: () => void}) {
     return (
-        <button type="button" className="sidebar-button">
+        <button type="button" className="sidebar-button" onClick={onClick}>
             {title}
         </button>
     );
