@@ -1,23 +1,14 @@
-import './css/header.css'
-import './css/index.css'
-import './css/sidebar.css'
-import { Header } from './components/header.tsx'
-import { Sidebar } from './components/sidebar.tsx'
-import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { MetricPage } from './pages/MetricPage'
+
 
 export function App() {
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
-
   return (
-    <div>
-      <Header 
-        title="Metrics" 
-        onBurgerClick={() => setIsSidebarVisible(!isSidebarVisible)} 
-      />
-      <Sidebar 
-        isVisible={isSidebarVisible} 
-        onClose={() => setIsSidebarVisible(false)} 
-      />
-    </div>
+    <Router>
+      <Routes>
+        <Route index element={<MetricPage />} /> {/* Страница по умолчанию */}
+        <Route path="/metrics" element={<MetricPage />} />
+      </Routes>
+    </Router>
   );
 }
