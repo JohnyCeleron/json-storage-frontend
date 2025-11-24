@@ -1,8 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap');
 
+html {
+  height: 100%;
+  width: 100%;
+}
+
+.page {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
 body {
   background-color: #eaeaea;
   margin: 0;
   font-family: 'Afacad', sans-serif;
+  height: 100%;
+  width: 100%;
 }
 

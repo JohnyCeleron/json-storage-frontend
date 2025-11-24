@@ -1,9 +1,8 @@
+import type { NamespaceData } from "../interfaces/namespaceData.ts";
 
-// Моковые данные для namespace-1
 
-
-export const mockNamespace1Data = {
-    items: [
+export const mockNamespace1Data: NamespaceData = {
+    documentsData: [
         {
             "id": "doc-1-1",
             "document_name": "user-profiles.json",
@@ -35,14 +34,46 @@ export const mockNamespace1Data = {
             "updatedAt": "2024-01-21T10:10:00Z",
             "contentLength": 3072,
             "contentHash": "d4e5f6789012345678901234567890abcde123"
+        },
+        {
+            "id": "doc-1-5",
+            "document_name": "user-profiles.json",
+            "createdAt": "2024-01-15T10:30:00Z",
+            "updatedAt": "2024-01-20T14:25:00Z",
+            "contentLength": 2048,
+            "contentHash": "a1b2c3d4e5f6789012345678901234567890abcd"
+        },
+        {
+            "id": "doc-1-6",
+            "document_name": "app-config.json",
+            "createdAt": "2024-01-16T09:15:00Z",
+            "updatedAt": "2024-01-18T11:40:00Z",
+            "contentLength": 4096,
+            "contentHash": "b2c3d4e5f6789012345678901234567890abcde1"
+        },
+        {
+            "id": "doc-1-7",
+            "document_name": "api-endpoints.json",
+            "createdAt": "2024-01-17T13:20:00Z",
+            "updatedAt": "2024-01-19T16:55:00Z",
+            "contentLength": 1024,
+            "contentHash": "c3d4e5f6789012345678901234567890abcde12"
+        },
+        {
+            "id": "doc-1-8",
+            "document_name": "feature-flags.json",
+            "createdAt": "2024-01-18T08:45:00Z",
+            "updatedAt": "2024-01-21T10:10:00Z",
+            "contentLength": 3072,
+            "contentHash": "d4e5f6789012345678901234567890abcde123"
         }
     ],
-    count: 4
+    count: 8
 };
 // Моковые данные для namespace-2
 
-export const mockNamespace2Data = {
-    items: [
+export const mockNamespace2Data: NamespaceData = {
+    documentsData: [
         {
             "id": "doc-2-1",
             "document_name": "database-config.json",
@@ -72,8 +103,8 @@ export const mockNamespace2Data = {
 };
 // Моковые данные для namespace-3
 
-export const mockNamespace3Data = {
-    items: [
+export const mockNamespace3Data: NamespaceData = {
+    documentsData: [
         {
             "id": "doc-3-1",
             "document_name": "payment-gateway.json",
@@ -119,8 +150,8 @@ export const mockNamespace3Data = {
 };
 // Моковые данные для namespace-4
 
-export const mockNamespace4Data = {
-    items: [
+export const mockNamespace4Data: NamespaceData = {
+    documentsData: [
         {
             "id": "doc-4-1",
             "document_name": "monitoring-config.json",
@@ -148,7 +179,7 @@ export const mockNamespace4Data = {
     ],
     count: 3
 };
-export const mockDB = new Map<String, any>([
+export const mockDB: Map<String, NamespaceData> = new Map<String, NamespaceData>([
     ["namespace-1", mockNamespace1Data],
     ["namespace-2", mockNamespace2Data],
     ["namespace-3", mockNamespace3Data],
