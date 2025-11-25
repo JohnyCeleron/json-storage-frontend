@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { MetricPage } from './pages/MetricPage'
 import { LogPage } from './pages/LogPage';
 import { NamespacePage } from './pages/NamespacePage';
+import { DocumentPage } from './pages/documentPage';
 
 
 export function App() {
@@ -12,6 +13,7 @@ export function App() {
         <Route path="/metrics" element={<MetricPage />} />
         <Route path="/logs" element={<LogPage />} />
         <Route path="/namespaces/:namespace" element={<NamespacePage />} />
+        <Route path="/namespaces/:namespace/documents/:documentId" element={<DocumentPage />} />
       </Routes>
     </Router>
   );

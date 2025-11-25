@@ -1,7 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import "../css/documents.css"
 import type { NamespaceData } from "../interfaces/namespaceData.ts";
 
-export function NamespaceDocuments({namespaceData}: {namespaceData: NamespaceData | null}) {
+export function NamespaceDocuments({namespaceName, namespaceData}: {namespaceName: string, namespaceData: NamespaceData}) {
+    const navigate = useNavigate();
+    
     return (
         <div className="namespace-documents-container">
             <div className="namespace-header">
@@ -27,10 +30,13 @@ export function NamespaceDocuments({namespaceData}: {namespaceData: NamespaceDat
 
                     {(namespaceData?.documentsData ?? []).map((doc) => (
                         <div key={doc.id} className="document-row">
-                            <div className="document-name">{doc.document_name}</div>
+                            <div className="document-name">{doc.documentName}</div>
                             <div className="document-date">{doc.createdAt}</div>
                             <div className="document-actions">
-                                <button className="document-info-button">Info</button>
+                                <button className="document-info-button" onClick={
+                                    () => navigate(`/namespaces/${namespaceName}/documents/${doc.id}`, 
+                                        {state : {document: doc}}
+                                    )}>Info</button>
                                 <button className="document-remove-button">Remove</button>
                             </div>
                         </div>

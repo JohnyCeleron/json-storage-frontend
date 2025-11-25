@@ -1,5 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap');
 
+.document-page-layout {
+    display: flex;
+    height: calc(100vh - 50px); /* учёт высоты Header */
+    box-sizing: border-box;
+    padding: 10px;
+    gap: 10px;
+}
+
+/* Левая панель — фиксированная */
+.document-info-container {
+    flex: 0 0 350px;
+    background: #3b3b3b;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    overflow-y: auto;
+}
+
+/* Правая панель — растягивается */
+.document-content-container {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    
+}
 
 .documents-header {
   display: grid;
@@ -9,20 +37,42 @@
   margin-bottom: 8px;
 }
 
+.info-row {
+    display: grid;
+    grid-template-columns: 140px 1fr; /* ширина лейбла + остальное */
+    padding: 6px 0;
+    align-items: center;
+}
+
+.info-label {
+    font-weight: 700;
+    font-size: 12px;
+    color: #c0c0c0;
+    text-align: left; /* по левому */
+}
+
+.info-value {
+    text-align: left; /* по правому */
+    font-weight: 500;
+    font-size: 12px;
+    color: #c0c0c0;
+    word-break: break-all; /* чтобы длинные хэши не ломали layout */
+}
+
 .document-row {
   display: grid;
   grid-template-columns: 1fr 200px 220px;
   align-items: center;
   background: #d2d2d2;
   padding: 14px 16px;
-  border-radius: 8px;
+  border-radius: 5px;
   margin: 10px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.621);
 }
 
 .document-name,
 .document-date {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #222;
 }

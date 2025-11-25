@@ -78,7 +78,7 @@ export function NamespacePage() {
                 onClose={() => setIsSidebarVisible(false)} 
             />
             
-            <NamespaceDocuments namespaceData={namespaceData}/>
+            <NamespaceDocuments namespaceName={namespace!} namespaceData={namespaceData!}/>
         </div>
     );
 }
