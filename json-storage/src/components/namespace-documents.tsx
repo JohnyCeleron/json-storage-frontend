@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import "../css/documents.css";
 import "../css/updateIndex.css";
+import "../css/toast.css";
 import type { NamespaceData } from "../interfaces/namespaceData.ts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { UpdateIndexModal } from "./update-index.tsx";
+import { LoadingSpinner } from "./load-spinner.tsx";
 
 type DocumentUI = {
   id: string;
@@ -41,10 +43,8 @@ const PAGE_SIZE = 7;
 
 export function NamespaceDocuments({
   namespaceName,
-  namespaceData,
 }: {
   namespaceName: string;
-  namespaceData: NamespaceData;
 }) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,14 +58,14 @@ export function NamespaceDocuments({
 
   // list + pagination
   const [documents, setDocuments] = useState<DocumentUI[]>(
-    (namespaceData.documentsData ?? []).map((d: any) => ({
-      id: d.id,
-      documentName: d.documentName ?? d.document_name ?? "",
-      createdAt: d.createdAt ?? d.created_at ?? "",
-      contentHash: d.contentHash ?? d.content_hash ?? "",
-      contentLength: d.contentLength ?? d.content_length ?? 0,
-      updatedAt: d.updatedAt ?? d.updated_at ?? "",
-    }))
+    //(namespaceData.documentsData ?? []).map((d: any) => ({
+    //  id: d.id,
+    //  documentName: d.documentName ?? d.document_name ?? "",
+    //  createdAt: d.createdAt ?? d.created_at ?? "",
+    //  contentHash: d.contentHash ?? d.content_hash ?? "",
+    //  contentLength: d.contentLength ?? d.content_length ?? 0,
+    //  updatedAt: d.updatedAt ?? d.updated_at ?? "",
+    //}))
   );
   const [isListLoading, setIsListLoading] = useState(false);
 
@@ -84,6 +84,20 @@ export function NamespaceDocuments({
     () => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
     [totalCount]
   );
+  const [toast, setToast] = useState<{ message: string; type?: "error" | "success"; fading?: boolean; } | null>(null);
+
+  const showToast = (message: string, type: "error" | "success" = "error") => {
+    setToast({ message, type });
+    window.setTimeout(() => {
+      // запускаем затухание
+      setToast((prev) => (prev ? { ...prev, fading: true } : prev));
+    }, 2200);
+
+    window.setTimeout(() => {
+      // убираем из DOM после затухания
+      setToast(null);
+    }, 2200 + 350);
+  };
 
   const mapApiToUI = (d: DocumentApi): DocumentUI => ({
     id: d.id,
@@ -129,6 +143,15 @@ export function NamespaceDocuments({
       setNextCursor(computedNextCursor);
 
       setTotalCount(data.count ?? 0);
+    } catch (e) {
+      console.error(e);
+
+      // важно: сброси состояние пагинации/списка, чтобы UI не "врал"
+      setDocuments([]);
+      setHasNext(false);
+      setNextCursor(null);
+
+      showToast("fetch documents failed", "error");
     } finally {
       setIsListLoading(false);
     }
@@ -144,9 +167,8 @@ export function NamespaceDocuments({
 
   // загрузка при смене cursor/namespace
   useEffect(() => {
-    loadCurrentPage().catch((e) => {
-      console.error(e);
-    });
+    void loadCurrentPage();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaceName, cursor]);
 
@@ -266,6 +288,15 @@ export function NamespaceDocuments({
 
   return (
     <div className="namespace-documents-container">
+      {toast && (
+        <div
+          className={`toast toast--top ${toast.type ?? "error"} ${
+            toast.fading ? "toast--fadeout" : ""
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
       <input
         type="file"
         ref={fileInputRef}
@@ -357,6 +388,11 @@ export function NamespaceDocuments({
               </div>
             </div>
           ))}
+
+          {isListLoading && (
+            <LoadingSpinner />
+          )}
+
         </div>
 
         <div className="document-paginator-container">
