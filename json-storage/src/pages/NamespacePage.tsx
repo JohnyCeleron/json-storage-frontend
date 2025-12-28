@@ -5,20 +5,67 @@ import { Header } from '../components/header.tsx';
 import { Sidebar } from '../components/sidebar.tsx';
 import { useState, useEffect } from 'react';
 import { useParams} from 'react-router-dom';
-import { mockDB } from '../mocks/namespace.mocks.ts';
 import { LoadPage } from './loadPage.tsx';
 import { NamespaceDocuments } from '../components/namespace-documents.tsx';
 import type { NamespaceData } from '../interfaces/namespaceData.ts';
+import type { DocumentData } from '../interfaces/document.ts';
 
+async function fetchNamespaceData(namespace: string): Promise<NamespaceData | null> {
+    try {
+        // Формируем URL с параметрами
+        const url = new URL(`http://localhost:8080/ns/${namespace}/objects`);
+        url.searchParams.append('limit', '7');
+        
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
 
-// Функция имитации сетевого запроса
-async function fetchNamespaceData( namespace: string): Promise<NamespaceData | null> {
-    await new Promise(resolve => setTimeout(resolve, 800));
+        if (!response.ok) {
+            if (response.status === 404) {
+                console.warn(`Namespace "${namespace}" not found`);
+                return null;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const rawData = await response.json();
+        // Базовые проверки
+        if (!rawData || typeof rawData !== 'object') {
+            throw new Error('Invalid response format');
+        }
+        
+        // Преобразуем и валидируем документы
+        const documentsData: DocumentData[] = Array.isArray(rawData.items) 
+            ? rawData.items.map((doc: any) => ({
+                id: String(doc?.id || ''),
+                documentName: String(doc?.documentName || ''),
+                createdAt: String(doc?.createdAt || ''),
+                updatedAt: String(doc?.updatedAt || ''),
+                contentLength: Number(doc?.contentLength) || 0,
+                contentHash: String(doc?.contentHash || ''),
+                content: doc?.content && typeof doc.content === 'object' 
+                    ? doc.content as Record<string, unknown>
+                    : undefined,
+            }))
+            : [];
+        
+        // Создаем объект NamespaceData
+        const namespaceData: NamespaceData = {
+            documentsData,
+            count: Number(rawData?.count) || documentsData.length,
+        };
     
-    if (mockDB.has(namespace)) {
-        return mockDB.get(namespace)!;
-    } else {
-        throw new Error('Namespace not found');
+        
+        return namespaceData;
+    } catch (error) {
+        console.error(`Error fetching namespace "${namespace}":`, error);
+        return {
+            documentsData: [],
+            count: 0,
+        };
     }
 }
 
@@ -77,7 +124,6 @@ export function NamespacePage() {
                 isVisible={isSidebarVisible} 
                 onClose={() => setIsSidebarVisible(false)} 
             />
-            
             <NamespaceDocuments namespaceName={namespace!} namespaceData={namespaceData!}/>
         </div>
     );

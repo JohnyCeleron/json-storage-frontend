@@ -26,7 +26,7 @@
     padding: 15px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     overflow-y: auto;
-    
+    height: 100%;
 }
 
 .documents-header {
@@ -72,7 +72,7 @@
 
 .document-name,
 .document-date {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: #222;
 }
@@ -98,13 +98,21 @@
 .document-info-button {
   background: #3c9c26;
 }
+.document-info-button:hover {
+  background: #2e761c;
+}
+
+
 
 .document-remove-button {
   background: #c95049;
 }
+.document-remove-button:hover {
+  background: #882c27;
+}
 
 .namespace-documents-container{
-  height: 100vh;
+  height: 95%;
   display: flex;
   flex-direction: column;
   padding: 5px;
