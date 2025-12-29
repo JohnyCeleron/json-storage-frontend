@@ -3,13 +3,15 @@ export function UpdateIndexModal({
     onClose,
     onAccept,
     value,
-    onChange
+    onChange,
+    loading = false,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onAccept: () => void;
     value: string;
     onChange: (v: string) => void;
+    loading?: boolean;
 }) {
     if (!isOpen) return null;
 
@@ -43,12 +45,12 @@ export function UpdateIndexModal({
                 />
 
                 <div className="modal-buttons">
-                    <button className="cancel-button" onClick={onClose}>
+                    <button className="cancel-button" onClick={onClose} disabled={loading}>
                         Cancel
                     </button>
 
-                    <button className="accept-button" onClick={onAccept}>
-                        Accept
+                    <button className="accept-button" onClick={onAccept} disabled={loading}>
+                        {loading ? "Saving..." : "Accept"}
                     </button>
                 </div>
             </div>

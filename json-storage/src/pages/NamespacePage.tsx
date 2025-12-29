@@ -4,7 +4,7 @@ import '../css/sidebar.css'
 import { Header } from '../components/header.tsx';
 import { Sidebar } from '../components/sidebar.tsx';
 import { useState, useEffect } from 'react';
-import { useParams} from 'react-router-dom';
+import { useParams, useLocation} from 'react-router-dom';
 import { NamespaceDocuments } from '../components/namespace-documents.tsx';
 
 export function NamespacePage() {
@@ -14,6 +14,7 @@ export function NamespacePage() {
     //const [error, setError] = useState<string | null>(null);
     
     const { namespace } = useParams();
+    const location = useLocation();
 
     //useEffect(() => {
     //    const loadNamespaceData = async () => {
@@ -51,7 +52,6 @@ export function NamespacePage() {
     //if (error) {
     //    return null;
     //}
-
     return (
         <div className='page'>
             <Header 
@@ -62,7 +62,7 @@ export function NamespacePage() {
                 isVisible={isSidebarVisible} 
                 onClose={() => setIsSidebarVisible(false)} 
             />
-            <NamespaceDocuments namespaceName={namespace!}/>
+            <NamespaceDocuments namespaceName={namespace!} key={`${namespace}-${location.key}`}/>
         </div>
     );
 }

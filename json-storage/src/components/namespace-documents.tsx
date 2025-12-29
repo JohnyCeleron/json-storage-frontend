@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import "../css/documents.css";
 import "../css/updateIndex.css";
 import "../css/toast.css";
-import type { NamespaceData } from "../interfaces/namespaceData.ts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { UpdateIndexModal } from "./update-index.tsx";
 import { LoadingSpinner } from "./load-spinner.tsx";
@@ -86,6 +85,86 @@ export function NamespaceDocuments({
   );
   const [toast, setToast] = useState<{ message: string; type?: "error" | "success"; fading?: boolean; } | null>(null);
 
+  const [searchValue, setSearchValue] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchMode, setIsSearchMode] = useState(false);  
+
+  type SearchResponseItem = DocumentApi | DocumentUI | Record<string, any>;
+
+  const searchObjects = async (namespace: string, filters: string) => {
+    const url = new URL(`http://localhost:8080/ns/${namespace}/search`);
+
+    const resp = await fetch(url.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // ВАЖНО: filters у тебя строка => Body(...) значит отправляем JSON-строку
+      body: JSON.stringify(filters),
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => "");
+      throw new Error(t || `HTTP ${resp.status}: search failed`);
+    }
+
+    return (await resp.json()) as SearchResponseItem[];
+  };
+
+  const runSearch = async () => {
+    const filters = searchValue.trim();
+
+    // Если поле пустое — выходим из режима поиска и грузим обычный список (первая страница)
+    if (!filters) {
+      setIsSearchMode(false);
+      setCursor(null);
+      setCursorStack([]);
+      await loadCurrentPage();
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const result = await searchObjects(namespaceName, filters);
+      console.info("Search result:", result);
+      const mapped: DocumentUI[] = (result ?? [])
+        .map((x: any) => {
+          // если похоже на DocumentApi — мапим штатно
+          if (x?.id && (x.documentName || x.document_name || x.createdAt || x.created_at)) {
+            return mapApiToUI(x as DocumentApi);
+          }
+
+          // fallback — мягкая нормализация
+          return {
+            id: String(x?.id ?? ""),
+            documentName: String(x?.documentName ?? x?.document_name ?? ""),
+            createdAt: String(x?.createdAt ?? x?.created_at ?? ""),
+            contentHash: String(x?.contentHash ?? x?.content_hash ?? ""),
+            contentLength: Number(x?.contentLength ?? x?.content_length ?? 0),
+            updatedAt: String(x?.updatedAt ?? x?.updated_at ?? ""),
+          } as DocumentUI;
+        })
+        .filter((d) => d.id);
+
+      // УСПЕХ: обновляем список
+      setDocuments(mapped);
+      setIsSearchMode(true);
+
+      // Чтобы пагинация не путала в режиме поиска:
+      setHasNext(false);
+      setNextCursor(null);
+      setTotalCount(mapped.length);
+      setCursor(null);
+      setCursorStack([]);
+
+      showToast(`Found ${mapped.length} document(s)`, "success");
+    } catch (e) {
+      console.error(e);
+      // ОШИБКА: ничего не обновляем (documents/page/cursor остаются как были)
+      showToast("Search failed", "error");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const showToast = (message: string, type: "error" | "success" = "error") => {
     setToast({ message, type });
     window.setTimeout(() => {
@@ -159,6 +238,9 @@ export function NamespaceDocuments({
 
   // при смене namespace — сброс на первую страницу
   useEffect(() => {
+    setSearchValue("");
+    setIsSearchMode(false);
+
     setCursor(null);
     setCursorStack([]);
     setHasNext(false);
@@ -167,6 +249,7 @@ export function NamespaceDocuments({
 
   // загрузка при смене cursor/namespace
   useEffect(() => {
+    if (isSearchMode) return;
     void loadCurrentPage();
   // eslint-disable-next-line react-hooks/exhaustive-deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -177,6 +260,7 @@ export function NamespaceDocuments({
 
   // IMPORTANT: Next блокируем, если пришло < PAGE_SIZE+1 (то есть hasNext=false)
   const nextDisabled = isListLoading || !hasNext || !nextCursor;
+
 
   const handleNextPage = () => {
     if (nextDisabled) return;
@@ -244,13 +328,14 @@ export function NamespaceDocuments({
       const jsonData = JSON.parse(fileContent);
 
       await uploadDocumentToServer(namespaceName, documentName, jsonData);
-
+      showToast(`Document "${documentName}" uploaded`, "success");
       // после добавления — на первую страницу
       setCursor(null);
       setCursorStack([]);
       await loadCurrentPage();
     } catch (error) {
       console.error("Ошибка загрузки:", error);
+      showToast('Upload failed', "error");
     } finally {
       setIsUploading(false);
       if (event.target) event.target.value = "";
@@ -279,13 +364,56 @@ export function NamespaceDocuments({
   };
 
   const handleDeleteClick = (doc: { documentName: string; id: string }) => {
-    if (confirm(`Delete document "${doc.documentName}"?`)) {
-      deleteDocument(namespaceName, doc.id).catch((e) => {
+    deleteDocument(namespaceName, doc.id).catch((e) => {
         console.error(e);
-      });
+    });
+  };
+
+  const [isSchemaSaving, setIsSchemaSaving] = useState(false);
+
+  const setSearchSchema = async (namespace: string, schema: any) => {
+    // путь под твой backend (по аналогии с /objects)
+    const url = new URL(`http://localhost:8080/ns/${namespace}/search-schema`);
+
+    const resp = await fetch(url.toString(), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(schema),
+    });
+    console.info("setSearchSchema response:", resp);
+    if (!resp.ok) {
+      // backend может вернуть текст/JSON — заберём текст как есть
+      const t = await resp.text().catch(() => "");
+      throw new Error(t || `HTTP ${resp.status}: failed to set search schema`);
     }
   };
 
+  const handleAcceptUpdateIndex = async () => {
+    // indexText у тебя строка из модалки
+    let schema: any;
+    try {
+      schema = JSON.parse(indexText);
+    } catch (e: any){
+      console.info(indexText);
+      console.error(e);
+      showToast("Invalid JSON in search schema", "error");
+      return;
+    }
+
+    setIsSchemaSaving(true);
+    try {
+      await setSearchSchema(namespaceName, schema);
+
+      showToast("Search schema updated", "success");
+      setIsModalOpen(false);
+    } catch (e: any) {
+      console.error(e);
+      showToast("Update index failed", "error");
+      // модалку НЕ закрываем при ошибке — чтобы можно было поправить JSON и повторить
+    } finally {
+      setIsSchemaSaving(false);
+    }
+  };
   return (
     <div className="namespace-documents-container">
       {toast && (
@@ -307,13 +435,14 @@ export function NamespaceDocuments({
 
       <UpdateIndexModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAccept={() => {
-          console.log("Index accepted:", indexText);
-          setIsModalOpen(false);
+        onClose={() => {
+          if (!isSchemaSaving)
+            setIsModalOpen(false)
         }}
+        onAccept={handleAcceptUpdateIndex}
         value={indexText}
         onChange={setIndexText}
+        loading={isSchemaSaving}
       />
 
       <div className="namespace-header">
@@ -321,6 +450,14 @@ export function NamespaceDocuments({
           type="text"
           className="json-path-search-input"
           placeholder="JSON Path Search"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void runSearch();
+            }
+          }}
         />
 
         <div className="header-buttons">
