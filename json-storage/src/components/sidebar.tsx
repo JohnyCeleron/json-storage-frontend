@@ -193,7 +193,6 @@ function NamespacesButton({ sidebarRef }: { sidebarRef: React.RefObject<HTMLDivE
               disabled={isAdding}
             />
           </div>
-
           {toast && (
             <div
               className={`toast toast--top ${toast.type ?? "error"} ${
@@ -204,19 +203,23 @@ function NamespacesButton({ sidebarRef }: { sidebarRef: React.RefObject<HTMLDivE
             </div>
           )}
 
-          {isLoading ? (
-            <div className="namespace-loading">Loading...</div>
-          ) : (
-            namespaces.map((namespace) => (
-              <button
-                key={namespace}
-                className="namespace-item"
-                onClick={() => navigate(`/namespaces/${namespace}`)}
-              >
-                {namespace}
-              </button>
-            ))
-          )}
+          <div className="scrollable-section">
+            {isLoading ? (
+              <div className="namespace-loading">Loading...</div>
+            ) : (
+              <div className="scrollable-content">
+                {namespaces.map((namespace) => (
+                  <button
+                    key={namespace}
+                    className="namespace-item"
+                    onClick={() => navigate(`/namespaces/${namespace}`)}
+                  >
+                    {namespace}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

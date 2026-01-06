@@ -1,5 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap');
 
+.scrollable-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* займет всю доступную высоту родителя */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #b4b7bca0 transparent; /* Firefox */
+}
+
+.scrollable-section::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollable-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-section::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
+}
+
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* важно для правильной работы flex */
+}
+
+/* Если нужно ограничить максимальную высоту */
+.scrollable-section {
+  max-height: 70vh; /* 70% от высоты окна */
+}
 
 .sidebar-container {
     position: fixed;
