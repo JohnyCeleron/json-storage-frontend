@@ -27,6 +27,32 @@ export async function apiFetchDocumentsPage(namespace: string, cursor: string | 
   return (await resp.json()) as DocumentListResponse;
 }
 
+export async function apiCreateNamespace(namespace: string): Promise<string[]> {
+  const url = buildUrl(API_BASE_URL, `/ns/${namespace}/create`);
+  const resp = await fetch(url.toString(), {
+    method: "POST",
+    headers: { "Accept": "application/json" }
+  });
+
+  if (!resp.ok) {
+    throw new Error('Create namespace failed');
+  }
+  return (await resp.json()) as string[];
+}
+
+export async function apiFetchNamespaces(): Promise<string[]> {
+  const url = buildUrl(API_BASE_URL, '/ns/get_namespaces');
+  const resp = await fetch(url.toString(), {
+    method: "GET",
+    headers: {"Accept": "application/json"}
+  });
+
+  if (!resp.ok) {
+    throw new Error('Fetch namespaces failed');
+  }
+  return (await resp.json()) as string[];
+}
+
 export async function apiSearchObjects(namespace: string, filters: string, opts: FetchOpts = {}): Promise<SearchResponseItem[]> {
   const url = buildUrl(API_BASE_URL, `/ns/${namespace}/search`);
   const resp = await fetch(url.toString(), {
