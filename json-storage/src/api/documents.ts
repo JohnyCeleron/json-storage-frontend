@@ -53,7 +53,7 @@ export async function apiFetchNamespaces(): Promise<string[]> {
   return (await resp.json()) as string[];
 }
 
-export async function apiSearchObjects(namespace: string, filters: string, opts: FetchOpts = {}): Promise<SearchResponseItem[]> {
+export async function apiSearchObjects(namespace: string, filters: string, offtop: number | null = null, opts: FetchOpts = {}): Promise<SearchResponseItem[]> {
   const url = buildUrl(API_BASE_URL, `/ns/${namespace}/search`);
   const resp = await fetch(url.toString(), {
     method: "POST",

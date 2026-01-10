@@ -11,7 +11,7 @@ async function getObjectBodyText(
     id: string
   ): Promise<any> {
     const response = await fetch(
-      `http://localhost:8080/ns/${namespace}/objects/${id}/body?object_id=${id}`,
+      `http://5.159.101.21:8080/ns/${namespace}/objects/${id}/body?object_id=${id}`,
       {
         method: 'GET',
         headers: [

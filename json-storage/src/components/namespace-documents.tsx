@@ -69,8 +69,9 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
             type="button"
             className="update-index-button"
             onClick={a.openUpdateIndexModal}
+            disabled={a.progressIndex !== null}
           >
-            Update Index
+            {a.progressIndex !== null ? `${a.progressIndex}%` : 'Update Index'}
           </button>
 
           <button

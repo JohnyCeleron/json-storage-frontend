@@ -35,6 +35,8 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
   const [indexText, setIndexText] = useState("");
   const [isSchemaSaving, setIsSchemaSaving] = useState(false);
 
+  const [progressIndex, setProgressIndex] = useState<null | number>(null);
+
   /** ========== Pagination state ========== */
   const [cursor, setCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([]);
@@ -285,8 +287,10 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
     try {
       await apiSetSearchSchema(namespaceName, schema, { signal: c.signal });
-      showToast("Search schema updated", "success");
+      //showToast("Search schema updated", "success");
       setIsModalOpen(false);
+
+      await pollProgressStatusSimple(namespaceName);
     } catch (e: any) {
       if (isAbortError(e)) return;
       console.error(e);
@@ -295,6 +299,76 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
       setIsSchemaSaving(false);
     }
   }, [namespaceName, indexText, showToast]);
+
+  // Простая функция опроса с выводом в консоль
+  const pollProgressStatusSimple = async (namespace: string) => {
+    const POLL_INTERVAL = 100; // 0.1 секунды
+    const MAX_POLL_TIME = 30000; // 30 секунд максимальное время
+    const MAX_RETRIES = MAX_POLL_TIME / POLL_INTERVAL;
+    
+    let retries = 0;
+    console.log(`🚀 Starting progress polling for namespace: ${namespace}`);
+    
+    while (retries < MAX_RETRIES) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+      
+      try {
+        const response = await fetch(
+          `http://5.159.101.21:8080/ns/${namespace}/progress-bar`,
+          {
+            method: 'GET',
+            headers: {
+              'accept': 'application/json',
+            }
+          }
+        );
+        
+        if (!response.ok) {
+          console.error(`❌ HTTP error! status: ${response.status}`);
+          retries++;
+          continue;
+        }
+        
+        const data = await response.json();
+        const { status, percent } = data;
+    
+
+        setProgressIndex(percent);
+        // Проверяем конечные статусы
+        if (status === 'success') {
+          console.log('✅ Index update SUCCESS!');
+          setProgressIndex(null);
+          showToast("Index updated successfully!", "success");
+          return;
+        }
+        
+        if (status === 'failed') {
+          console.log('❌ Index update FAILED!');
+          setProgressIndex(null);
+          showToast("Index update failed", "error");
+          return;
+        }
+        
+        // Если процесс завершен (но не success/failed)
+        if (status !== 'progress' && status !== 'init') {
+          console.log(`⚠️ Index update finished with status: ${status}`);
+          setProgressIndex(null);
+          showToast(`Index update status: ${status}`, 
+            status === 'success' ? "success" : "error");
+          return;
+        }
+        
+      } catch (error) {
+        console.error('🔥 Error fetching progress:', error);
+      }
+      
+      retries++;
+    }
+    
+    console.log('⏰ Polling timeout after 30 seconds');
+    setProgressIndex(null);
+    showToast("Index update timed out. Please check manually.", "error");
+  };
 
   /** ========== Effects ========== */
   // Reset everything when namespace changes
@@ -326,6 +400,7 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
   return {
     // state
+    progressIndex, 
     toast,
 
     documents,

@@ -11,7 +11,7 @@ const kibana = {
   title: "Kibana Logs",
   subtitle: "Event log",
   description: "Open the full log stream in Kibana Discover",
-  href: "http://localhost:5601/app/discover#",
+  href: "http://5.159.101.21:5601/app/discover#",
   icon: "📊",
   color: "#8B5CF6", // можешь поменять (например #3B82F6)
 };
