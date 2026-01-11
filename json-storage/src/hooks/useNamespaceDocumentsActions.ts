@@ -123,28 +123,33 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
   const listReqIdRef = useRef(0);
 
-  const loadCurrentPage = useCallback(async () => {
-    if (isSearchMode) return;
+  const loadCurrentPage = useCallback(
+    async (cursorOverride?: string | null) => {
+      if (isSearchMode) return;
 
-    const reqId = ++listReqIdRef.current;
+      const reqId = ++listReqIdRef.current;
 
-    const c = newController(listAbortRef);
-    setIsListLoading(true);
+      const c = newController(listAbortRef);
+      setIsListLoading(true);
 
-    try {
-      const data = await apiFetchDocumentsPage(namespaceName, cursor, { signal: c.signal });
-      applyListData(data);
-    } catch (e: any) {
-      if (isAbortError(e)) return;
-      console.error(e);
-      showToast("fetch documents failed", "error");
-    } finally {
-      // ✅ только последний запрос имеет право гасить loader
-      if (listReqIdRef.current === reqId) {
-        setIsListLoading(false);
+      const cursorToUse = cursorOverride !== undefined ? cursorOverride : cursor;
+
+      try {
+        const data = await apiFetchDocumentsPage(namespaceName, cursorToUse, { signal: c.signal });
+        applyListData(data);
+      } catch (e: any) {
+        if (isAbortError(e)) return;
+        console.error(e);
+        showToast("fetch documents failed", "error");
+      } finally {
+        if (listReqIdRef.current === reqId) {
+          setIsListLoading(false);
+        }
       }
-    }
-  }, [namespaceName, cursor, isSearchMode, showToast]);
+    },
+    [namespaceName, cursor, isSearchMode, showToast]
+  );
+
 
   /** ========== Search ========== */
   const exitSearchMode = useCallback(() => {
@@ -271,22 +276,60 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
         await apiDeleteDocument(namespaceName, docId, { signal: c.signal });
         showToast("Document removed", "success");
 
-        // reset to first page list
+        // выходим из search-mode (если вдруг были в нём)
         abortSearch();
         setIsSearchMode(false);
         setSearchValue("");
 
-        setCursor(null);
-        setCursorStack([]);
+        const onlyOneOnPage = documents.length === 1;
 
-        await loadCurrentPage();
+        // ✅ CURSOR pagination (основной кейс в твоём коде)
+        if (paginationType === "cursor") {
+          const notFirstPage = cursorStack.length > 0;
+
+          if (onlyOneOnPage && notFirstPage) {
+            // перейти назад на 1 страницу
+            const prevCursor = cursorStack[cursorStack.length - 1] ?? null;
+            const newStack = cursorStack.slice(0, -1);
+
+            setCursorStack(newStack);
+            setCursor(prevCursor);
+
+            // сразу грузим предыдущую страницу (не ждём setState)
+            await loadCurrentPage(prevCursor);
+            return;
+          }
+
+          // иначе остаёмся на этой же странице
+          await loadCurrentPage(cursor);
+          return;
+        }
+
+        // ✅ OFFSET pagination (если будешь реально использовать)
+        // сейчас у тебя API загрузки всё равно cursor-ориентирован, но логику оставим корректной
+        if (onlyOneOnPage && currentOffset > 0) {
+          const newOffset = Math.max(0, currentOffset - PAGINATION.PAGE_SIZE);
+          setCurrentOffset(newOffset);
+          // Тут нужно будет вызывать offset-API, если появится
+        }
+
+        await loadCurrentPage(cursor);
       } catch (e: any) {
         if (isAbortError(e)) return;
         console.error(e);
         showToast("Delete failed", "error");
       }
     },
-    [namespaceName, showToast]
+    [
+      namespaceName,
+      showToast,
+      documents.length,
+      paginationType,
+      cursorStack,
+      cursor,
+      currentOffset,
+      loadCurrentPage,
+    ]
   );
 
   /** ========== Update index (schema) ========== */
