@@ -14,6 +14,7 @@
     background: #3b3b3b;
     border-radius: 5px;
     padding: 15px;
+    position: relative;
     box-shadow: 0 0 6px rgba(0,0,0,0.1);
     overflow-y: auto;
 }
@@ -102,7 +103,35 @@
   background: #2e761c;
 }
 
+/* Back button: снизу по центру, серый стиль как у других кнопок */
+.document-back-button {
+  position: absolute;
+  left: 50%;
+  bottom: 15px;              /* подстрой при необходимости */
+  transform: translateX(-50%);
 
+  /* форма/типографика как у update-index-button / add-document-button */
+  padding: 8px 16px;
+  width: 120px;
+  min-width: 120px;
+  height: 32px;
+  border-radius: 4px;
+  border: none;      /* убрать контур/рамку */
+  outline: none;     /* убрать обводку */
+
+  font-family: 'Afacad', sans-serif;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  /* серый цвет */
+  background: #b5b5b5;
+  color: #222;
+}
+
+.document-back-button:hover {
+  background: #7e7e7e;
+}
 
 .document-remove-button {
   background: #c95049;
