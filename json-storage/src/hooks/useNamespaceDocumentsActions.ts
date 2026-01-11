@@ -26,6 +26,16 @@ function isAbortError(e: any) {
 
 type PaginationType = "offset" | "cursor";
 
+export type DocumentsListState = {
+  searchValue: string;
+  isSearchMode: boolean;
+  paginationType: PaginationType;
+  currentOffset: number;
+  cursor: string | null;
+  cursorStack: (string | null)[];
+};
+
+
 export function useNamespaceDocumentsActions(namespaceName: string) {
   /** ========== UI state ========== */
   const [toast, setToast] = useState<ToastState>(null);
@@ -509,17 +519,118 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     return () => abortList();
   }, [loadCurrentPage]);
 
+  const refreshSearch = useCallback(
+    async (filters: string, keepOffset: boolean = true) => {
+      const q = filters.trim();
+      if (!q) return;
+
+      const c = newController(searchAbortRef);
+      setIsSearching(true);
+
+      try {
+        const result = await apiSearchObjects(namespaceName, q);
+        const mapped = (result ?? [])
+          .map(mapSearchItemToUI)
+          .filter((d): d is DocumentUI => Boolean(d?.id));
+
+        setIsSearchMode(true);
+        setPaginationType("offset");
+
+        setSearchAll(mapped);
+        setTotalCount(mapped.length);
+
+        if (!keepOffset) {
+          setCurrentOffset(0);
+          return;
+        }
+
+        // offset мог стать за границей — скорректируем
+        const pageSize = PAGINATION.PAGE_SIZE;
+        const maxOffset =
+          mapped.length === 0 ? 0 : Math.floor((mapped.length - 1) / pageSize) * pageSize;
+
+        setCurrentOffset((prev) => (prev > maxOffset ? maxOffset : prev));
+      } catch (e: any) {
+        if (isAbortError(e)) return;
+        console.error(e);
+        showToast("Search refresh failed", "error");
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [namespaceName, showToast]
+  );
+
+
+  const getListState = useCallback((): DocumentsListState => {
+    return {
+      searchValue,
+      isSearchMode,
+      paginationType,
+      currentOffset,
+      cursor,
+      cursorStack,
+    };
+  }, [searchValue, isSearchMode, paginationType, currentOffset, cursor, cursorStack]);
+
+  const restoreListState = useCallback(
+    async (st: DocumentsListState | null | undefined) => {
+      if (!st) return;
+
+      // остановим текущие запросы
+      abortList();
+      abortSearch();
+
+      setSearchValue(st.searchValue ?? "");
+
+      if (st.isSearchMode) {
+        // восстановление поиска
+        setIsSearchMode(true);
+        setPaginationType("offset");
+
+        setCursor(null);
+        setCursorStack([]);
+        setNextCursor(null);
+
+        // ВАЖНО: сначала загрузить searchAll по st.searchValue, потом поставить offset
+        setCurrentOffset(0);
+        await refreshSearch(st.searchValue ?? "", false);
+
+        // теперь offset
+        setCurrentOffset(st.currentOffset ?? 0);
+        return;
+      }
+
+      // восстановление cursor-списка
+      setIsSearchMode(false);
+      setPaginationType("cursor");
+
+      setCurrentOffset(0);
+      setSearchAll([]);
+
+      setCursorStack(st.cursorStack ?? []);
+      setCursor(st.cursor ?? null);
+
+      // и догружаем страницу
+      await loadCurrentPage(st.cursor ?? null);
+    },
+    [abortList, abortSearch, refreshSearch, loadCurrentPage]
+  );
+
   return {
     progressIndex,
     toast,
-
+    paginationType,
     documents,
     isListLoading,
-
+    currentOffset,
     selectedFile,
     isUploading,
-
+    cursor,
+    cursorStack,
     searchValue,
+    getListState,
+    restoreListState,
     setSearchValue,
     isSearching,
     isSearchMode,

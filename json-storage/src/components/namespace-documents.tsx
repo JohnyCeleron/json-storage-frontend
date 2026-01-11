@@ -9,12 +9,24 @@ import { UpdateIndexModal } from "./update-index.tsx";
 import { LoadingSpinner } from "./load-spinner.tsx";
 
 import { useNamespaceDocumentsActions } from "../hooks/useNamespaceDocumentsActions";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+
+
 
 export function NamespaceDocuments({ namespaceName }: { namespaceName: string }) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const a = useNamespaceDocumentsActions(namespaceName);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const st = (location.state as any)?.listState;
+    if (st) void a.restoreListState(st);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="namespace-documents-container">
@@ -111,7 +123,12 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
                   className="document-info-button"
                   onClick={() =>
                     navigate(`/namespaces/${namespaceName}/documents/${doc.id}`, {
-                      state: { document: doc },
+                      state: { 
+                        document: doc,
+                        returnTo: location.pathname + location.search,
+                        // снимок состояния списка
+                        listState: a.getListState(), 
+                      },
                     })
                   }
                 >
