@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import { PAGINATION, TOAST_TIMINGS } from "../constants/ui";
 import {
   apiDeleteDocument,
@@ -17,7 +24,7 @@ function isAbortError(e: any) {
   return e?.name === "AbortError";
 }
 
-type PaginationType = 'offset' | 'cursor';
+type PaginationType = "offset" | "cursor";
 
 export function useNamespaceDocumentsActions(namespaceName: string) {
   /** ========== UI state ========== */
@@ -40,20 +47,21 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
   const [progressIndex, setProgressIndex] = useState<null | number>(null);
 
   /** ========== Pagination state ========== */
-  const [paginationType, setPaginationType] = useState<PaginationType>('cursor');
+  const [paginationType, setPaginationType] = useState<PaginationType>("cursor");
   const [currentOffset, setCurrentOffset] = useState(0);
+
   const [cursor, setCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
+  // ✅ search results cache (up to 100) for client offset paging
+  const [searchAll, setSearchAll] = useState<DocumentUI[]>([]);
+
   const page = useMemo(() => {
-    if (paginationType == 'cursor') {
-      return cursorStack.length + 1
-    } else {
-      return Math.floor(currentOffset / PAGINATION.PAGE_SIZE) + 1;
-    }
+    if (paginationType === "cursor") return cursorStack.length + 1;
+    return Math.floor(currentOffset / PAGINATION.PAGE_SIZE) + 1;
   }, [paginationType, cursorStack.length, currentOffset]);
 
   const totalPages = useMemo(
@@ -61,10 +69,19 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     [totalCount]
   );
 
-  const backDisabled = isListLoading || cursorStack.length === 0 || isSearchMode;
-  const nextDisabled = isListLoading || !hasNext || !nextCursor || isSearchMode;
+  const backDisabled =
+    isListLoading ||
+    isSearching ||
+    (paginationType === "cursor" ? cursorStack.length === 0 : currentOffset === 0);
 
-  /** ========== Toast helpers (no magic timers) ========== */
+  const nextDisabled =
+    isListLoading ||
+    isSearching ||
+    (paginationType === "cursor"
+      ? !hasNext || !nextCursor
+      : currentOffset + PAGINATION.PAGE_SIZE >= totalCount);
+
+  /** ========== Toast helpers ========== */
   const fadeTimerRef = useRef<number | null>(null);
   const hideTimerRef = useRef<number | null>(null);
 
@@ -99,21 +116,23 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
   const abortSearch = () => searchAbortRef.current?.abort();
   const abortMutations = () => mutAbortRef.current?.abort();
 
-  const newController = (ref: React.MutableRefObject<AbortController | null>) => {
+  const newController = (ref: MutableRefObject<AbortController | null>) => {
     ref.current?.abort();
     const c = new AbortController();
     ref.current = c;
     return c;
   };
 
-  /** ========== List loading ========== */
+  /** ========== List loading (cursor) ========== */
   const applyListData = (data: DocumentListResponse) => {
     const all = (data.items ?? []).map(mapApiToUI);
 
+    // ✅ если бэк отдаёт PAGE_SIZE+1 для определения следующей страницы:
     const hasNextPage = all.length > PAGINATION.PAGE_SIZE;
-    const computedNextCursor = hasNextPage ? all[all.length - 1].id : null;
-
     const visible = all.slice(0, PAGINATION.PAGE_SIZE);
+
+    // ✅ nextCursor должен быть последним ВИДИМЫМ, а не “лишним”
+    const computedNextCursor = hasNextPage ? visible[visible.length - 1]?.id ?? null : null;
 
     setDocuments(visible);
     setHasNext(hasNextPage);
@@ -128,7 +147,6 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
       if (isSearchMode) return;
 
       const reqId = ++listReqIdRef.current;
-
       const c = newController(listAbortRef);
       setIsListLoading(true);
 
@@ -142,21 +160,22 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
         console.error(e);
         showToast("fetch documents failed", "error");
       } finally {
-        if (listReqIdRef.current === reqId) {
-          setIsListLoading(false);
-        }
+        if (listReqIdRef.current === reqId) setIsListLoading(false);
       }
     },
     [namespaceName, cursor, isSearchMode, showToast]
   );
 
-
-  /** ========== Search ========== */
+  /** ========== Search (fetch 100) ========== */
   const exitSearchMode = useCallback(() => {
     abortSearch();
     setIsSearchMode(false);
 
-    // reset pagination
+    setPaginationType("cursor");
+
+    setSearchAll([]);
+    setCurrentOffset(0);
+
     setCursor(null);
     setCursorStack([]);
     setHasNext(false);
@@ -168,7 +187,6 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
     if (!filters) {
       exitSearchMode();
-      // list will be loaded by effect (cursor/namespaceName)
       return;
     }
 
@@ -176,23 +194,35 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     setIsSearching(true);
 
     try {
-      const result = await apiSearchObjects(namespaceName, filters, { signal: c.signal });
+      // ✅ apiSearchObjects поддерживает вызов с opts третьим аргументом (см. перегрузку)
+      const result = await apiSearchObjects(namespaceName, filters);
+
       const mapped = (result ?? [])
         .map(mapSearchItemToUI)
         .filter((d): d is DocumentUI => Boolean(d?.id));
 
-      setDocuments(mapped);
       setIsSearchMode(true);
-      setPaginationType('offset');
+      setPaginationType("offset");
 
-      // disable pagination in search-mode
-      setHasNext(false);
-      setNextCursor(null);
-      setTotalCount(mapped.length);
+      // сброс cursor режима (он только для списка)
       setCursor(null);
       setCursorStack([]);
+      setNextCursor(null);
 
-      showToast(`Found ${mapped.length} document(s)`, "success");
+      // offset paging начинается с 0
+      setCurrentOffset(0);
+
+      // кэшируем 100 результатов и показываем первую страницу
+      setSearchAll(mapped);
+      setTotalCount(mapped.length);
+      setHasNext(mapped.length > PAGINATION.PAGE_SIZE);
+      setDocuments(mapped.slice(0, PAGINATION.PAGE_SIZE));
+
+      if (mapped.length === 100) {
+        showToast("Found 100 results (showing first 100). Refine filters to narrow down.", "success");
+      } else {
+        showToast(`Found ${mapped.length} document(s)`, "success");
+      }
     } catch (e: any) {
       if (isAbortError(e)) return;
       console.error(e);
@@ -202,22 +232,36 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     }
   }, [namespaceName, searchValue, exitSearchMode, showToast]);
 
+  // ✅ client-side paging для поиска (offset -> slice)
+  useEffect(() => {
+    if (!isSearchMode) return;
+    if (paginationType !== "offset") return;
+
+    const start = currentOffset;
+    const end = currentOffset + PAGINATION.PAGE_SIZE;
+
+    setDocuments(searchAll.slice(start, end));
+    setTotalCount(searchAll.length);
+    setHasNext(end < searchAll.length);
+    setNextCursor(null);
+  }, [isSearchMode, paginationType, currentOffset, searchAll]);
+
   /** ========== Pagination actions ========== */
   const goNext = useCallback(() => {
-    if (nextDisabled) 
-      return;
-    if (paginationType === 'cursor') {
+    if (nextDisabled) return;
+
+    if (paginationType === "cursor") {
       setCursorStack((prev) => [...prev, cursor]);
       setCursor(nextCursor);
     } else {
-      setCurrentOffset(currentOffset + PAGINATION.PAGE_SIZE);
+      setCurrentOffset((prev) => prev + PAGINATION.PAGE_SIZE);
     }
-  }, [nextDisabled, cursor, nextCursor]);
+  }, [nextDisabled, paginationType, cursor, nextCursor]);
 
   const goBack = useCallback(() => {
-    if (backDisabled)
-      return;
-    if (paginationType === 'cursor') {
+    if (backDisabled) return;
+
+    if (paginationType === "cursor") {
       setCursorStack((prev) => {
         const newStack = prev.slice(0, -1);
         const prevCursor = prev[prev.length - 1] ?? null;
@@ -225,9 +269,9 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
         return newStack;
       });
     } else {
-      setCurrentOffset(currentOffset - PAGINATION.PAGE_SIZE);
+      setCurrentOffset((prev) => Math.max(0, prev - PAGINATION.PAGE_SIZE));
     }
-  }, [backDisabled]);
+  }, [backDisabled, paginationType]);
 
   /** ========== Upload ========== */
   const uploadSelectedFile = useCallback(
@@ -245,16 +289,19 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
         showToast(`Document "${file.name}" uploaded`, "success");
 
-        // after upload -> go back to list mode and reload from first page
+        // выйти из поиска и вернуться к cursor списку
         abortSearch();
         setIsSearchMode(false);
         setSearchValue("");
+        setPaginationType("cursor");
+        setSearchAll([]);
+        setCurrentOffset(0);
 
         setCursor(null);
         setCursorStack([]);
 
-        await loadCurrentPage();
-
+        // ✅ гарантируем первую страницу
+        await loadCurrentPage(null);
       } catch (e: any) {
         if (isAbortError(e)) return;
         console.error(e);
@@ -264,7 +311,7 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
         setSelectedFile(null);
       }
     },
-    [namespaceName, showToast]
+    [namespaceName, showToast, loadCurrentPage]
   );
 
   /** ========== Delete ========== */
@@ -276,14 +323,33 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
         await apiDeleteDocument(namespaceName, docId, { signal: c.signal });
         showToast("Document removed", "success");
 
-        // выходим из search-mode (если вдруг были в нём)
-        abortSearch();
-        setIsSearchMode(false);
-        setSearchValue("");
+        // ============================
+        // 1) SEARCH MODE (offset)
+        // ============================
+        if (isSearchMode && paginationType === "offset") {
+          setSearchAll((prev) => {
+            const next = prev.filter((d) => d.id !== docId);
 
+            // если удалили так, что текущий offset стал “за концом” — откатимся на последнюю валидную страницу
+            const pageSize = PAGINATION.PAGE_SIZE;
+            const maxOffset =
+              next.length === 0 ? 0 : Math.floor((next.length - 1) / pageSize) * pageSize;
+
+            if (currentOffset > maxOffset) {
+              setCurrentOffset(maxOffset);
+            }
+            // searchValue НЕ трогаем, isSearchMode НЕ трогаем
+            return next;
+          });
+
+          return;
+        }
+
+        // ============================
+        // 2) LIST MODE (cursor)
+        // ============================
         const onlyOneOnPage = documents.length === 1;
 
-        // ✅ CURSOR pagination (основной кейс в твоём коде)
         if (paginationType === "cursor") {
           const notFirstPage = cursorStack.length > 0;
 
@@ -295,24 +361,18 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
             setCursorStack(newStack);
             setCursor(prevCursor);
 
-            // сразу грузим предыдущую страницу (не ждём setState)
             await loadCurrentPage(prevCursor);
             return;
           }
 
-          // иначе остаёмся на этой же странице
+          // остаёмся на той же странице
           await loadCurrentPage(cursor);
           return;
         }
 
-        // ✅ OFFSET pagination (если будешь реально использовать)
-        // сейчас у тебя API загрузки всё равно cursor-ориентирован, но логику оставим корректной
-        if (onlyOneOnPage && currentOffset > 0) {
-          const newOffset = Math.max(0, currentOffset - PAGINATION.PAGE_SIZE);
-          setCurrentOffset(newOffset);
-          // Тут нужно будет вызывать offset-API, если появится
-        }
-
+        // ============================
+        // 3) fallback (если вдруг окажешься в offset вне поиска)
+        // ============================
         await loadCurrentPage(cursor);
       } catch (e: any) {
         if (isAbortError(e)) return;
@@ -323,11 +383,12 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     [
       namespaceName,
       showToast,
-      documents.length,
+      isSearchMode,
       paginationType,
+      currentOffset,
+      documents.length,
       cursorStack,
       cursor,
-      currentOffset,
       loadCurrentPage,
     ]
   );
@@ -357,9 +418,7 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
     try {
       await apiSetSearchSchema(namespaceName, schema, { signal: c.signal });
-      //showToast("Search schema updated", "success");
       setIsModalOpen(false);
-
       await pollProgressStatusSimple(namespaceName);
     } catch (e: any) {
       if (isAbortError(e)) return;
@@ -370,78 +429,61 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     }
   }, [namespaceName, indexText, showToast]);
 
-  // Простая функция опроса с выводом в консоль
   const pollProgressStatusSimple = async (namespace: string) => {
-    const POLL_INTERVAL = 100; // 0.1 секунды
-    const MAX_POLL_TIME = 30000; // 30 секунд максимальное время
+    const POLL_INTERVAL = 100;
+    const MAX_POLL_TIME = 30000;
     const MAX_RETRIES = MAX_POLL_TIME / POLL_INTERVAL;
-    
+
     let retries = 0;
-    console.log(`🚀 Starting progress polling for namespace: ${namespace}`);
-    
+
     while (retries < MAX_RETRIES) {
-      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
-      
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+
       try {
-        const response = await fetch(
-          `http://5.159.101.21:8080/ns/${namespace}/progress-bar`,
-          {
-            method: 'GET',
-            headers: {
-              'accept': 'application/json',
-            }
-          }
-        );
-        
+        const response = await fetch(`http://5.159.101.21:8080/ns/${namespace}/progress-bar`, {
+          method: "GET",
+          headers: { accept: "application/json" },
+        });
+
         if (!response.ok) {
-          console.error(`❌ HTTP error! status: ${response.status}`);
           retries++;
           continue;
         }
-        
+
         const data = await response.json();
         const { status, percent } = data;
-    
 
         setProgressIndex(percent);
-        // Проверяем конечные статусы
-        if (status === 'success') {
-          console.log('✅ Index update SUCCESS!');
+
+        if (status === "success") {
           setProgressIndex(null);
           showToast("Index updated successfully!", "success");
           return;
         }
-        
-        if (status === 'failed') {
-          console.log('❌ Index update FAILED!');
+
+        if (status === "failed") {
           setProgressIndex(null);
           showToast("Index update failed", "error");
           return;
         }
-        
-        // Если процесс завершен (но не success/failed)
-        if (status !== 'progress' && status !== 'init') {
-          console.log(`⚠️ Index update finished with status: ${status}`);
+
+        if (status !== "progress" && status !== "init") {
           setProgressIndex(null);
-          showToast(`Index update status: ${status}`, 
-            status === 'success' ? "success" : "error");
+          showToast(`Index update status: ${status}`, status === "success" ? "success" : "error");
           return;
         }
-        
       } catch (error) {
-        console.error('🔥 Error fetching progress:', error);
+        // ignore
       }
-      
+
       retries++;
     }
-    
-    console.log('⏰ Polling timeout after 30 seconds');
+
     setProgressIndex(null);
     showToast("Index update timed out. Please check manually.", "error");
   };
 
   /** ========== Effects ========== */
-  // Reset everything when namespace changes
   useEffect(() => {
     abortList();
     abortSearch();
@@ -455,22 +497,20 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     setHasNext(false);
     setNextCursor(null);
 
-    // optional: clear docs until load
     setDocuments([]);
+
+    setPaginationType("cursor");
+    setCurrentOffset(0);
+    setSearchAll([]);
   }, [namespaceName]);
 
-  // Load list when cursor/namespace changes (and not in search mode)
   useEffect(() => {
     void loadCurrentPage();
-    return () => {
-      // abort in-flight list request on unmount or change
-      abortList();
-    };
+    return () => abortList();
   }, [loadCurrentPage]);
 
   return {
-    // state
-    progressIndex, 
+    progressIndex,
     toast,
 
     documents,
@@ -494,7 +534,6 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
     setIndexText,
     isSchemaSaving,
 
-    // actions
     showToast,
     runSearch,
     exitSearchMode,

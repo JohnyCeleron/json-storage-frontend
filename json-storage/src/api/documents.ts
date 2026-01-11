@@ -53,11 +53,16 @@ export async function apiFetchNamespaces(): Promise<string[]> {
   return (await resp.json()) as string[];
 }
 
-export async function apiSearchObjects(namespace: string, filters: string, offtop: number | null = null, opts: FetchOpts = {}): Promise<SearchResponseItem[]> {
+export async function apiSearchObjects(
+  namespace: string,
+  filters: string,
+  opts: FetchOpts = {}
+): Promise<SearchResponseItem[]> {
   const url = buildUrl(API_BASE_URL, `/ns/${namespace}/search`, {
-    size: String(PAGINATION.PAGE_SIZE),
-    from_: String(1),
+    size: String(100),
+    from_: String(0), // ✅ всегда с нуля
   });
+
   const resp = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -69,8 +74,10 @@ export async function apiSearchObjects(namespace: string, filters: string, offto
     const t = await readTextSafe(resp);
     throw new Error(t || `HTTP ${resp.status}: search failed`);
   }
+
   return (await resp.json()) as SearchResponseItem[];
 }
+
 
 export async function apiUploadDocument(namespace: string, documentName: string, jsonData: any, opts: FetchOpts = {}) {
   const url = buildUrl(API_BASE_URL, `/ns/${namespace}/objects`, { document_name: documentName });
