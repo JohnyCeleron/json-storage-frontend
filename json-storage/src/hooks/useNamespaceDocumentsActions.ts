@@ -17,6 +17,8 @@ function isAbortError(e: any) {
   return e?.name === "AbortError";
 }
 
+type PaginationType = 'offset' | 'cursor';
+
 export function useNamespaceDocumentsActions(namespaceName: string) {
   /** ========== UI state ========== */
   const [toast, setToast] = useState<ToastState>(null);
@@ -38,13 +40,22 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
   const [progressIndex, setProgressIndex] = useState<null | number>(null);
 
   /** ========== Pagination state ========== */
+  const [paginationType, setPaginationType] = useState<PaginationType>('cursor');
+  const [currentOffset, setCurrentOffset] = useState(0);
   const [cursor, setCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const page = useMemo(() => cursorStack.length + 1, [cursorStack.length]);
+  const page = useMemo(() => {
+    if (paginationType == 'cursor') {
+      return cursorStack.length + 1
+    } else {
+      return Math.floor(currentOffset / PAGINATION.PAGE_SIZE) + 1;
+    }
+  }, [paginationType, cursorStack.length, currentOffset]);
+
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(totalCount / PAGINATION.PAGE_SIZE)),
     [totalCount]
@@ -167,6 +178,7 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
       setDocuments(mapped);
       setIsSearchMode(true);
+      setPaginationType('offset');
 
       // disable pagination in search-mode
       setHasNext(false);
@@ -187,19 +199,29 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
   /** ========== Pagination actions ========== */
   const goNext = useCallback(() => {
-    if (nextDisabled) return;
-    setCursorStack((prev) => [...prev, cursor]);
-    setCursor(nextCursor);
+    if (nextDisabled) 
+      return;
+    if (paginationType === 'cursor') {
+      setCursorStack((prev) => [...prev, cursor]);
+      setCursor(nextCursor);
+    } else {
+      setCurrentOffset(currentOffset + PAGINATION.PAGE_SIZE);
+    }
   }, [nextDisabled, cursor, nextCursor]);
 
   const goBack = useCallback(() => {
-    if (backDisabled) return;
-    setCursorStack((prev) => {
-      const newStack = prev.slice(0, -1);
-      const prevCursor = prev[prev.length - 1] ?? null;
-      setCursor(prevCursor);
-      return newStack;
-    });
+    if (backDisabled)
+      return;
+    if (paginationType === 'cursor') {
+      setCursorStack((prev) => {
+        const newStack = prev.slice(0, -1);
+        const prevCursor = prev[prev.length - 1] ?? null;
+        setCursor(prevCursor);
+        return newStack;
+      });
+    } else {
+      setCurrentOffset(currentOffset - PAGINATION.PAGE_SIZE);
+    }
   }, [backDisabled]);
 
   /** ========== Upload ========== */
@@ -225,6 +247,9 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
         setCursor(null);
         setCursorStack([]);
+
+        await loadCurrentPage();
+
       } catch (e: any) {
         if (isAbortError(e)) return;
         console.error(e);
@@ -253,6 +278,8 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
         setCursor(null);
         setCursorStack([]);
+
+        await loadCurrentPage();
       } catch (e: any) {
         if (isAbortError(e)) return;
         console.error(e);

@@ -54,7 +54,10 @@ export async function apiFetchNamespaces(): Promise<string[]> {
 }
 
 export async function apiSearchObjects(namespace: string, filters: string, offtop: number | null = null, opts: FetchOpts = {}): Promise<SearchResponseItem[]> {
-  const url = buildUrl(API_BASE_URL, `/ns/${namespace}/search`);
+  const url = buildUrl(API_BASE_URL, `/ns/${namespace}/search`, {
+    size: String(PAGINATION.PAGE_SIZE),
+    from_: String(1),
+  });
   const resp = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -42,7 +42,6 @@ export function DocumentPage() {
         const loadDocumentContent = async () => {
             try {
                 const content = await getObjectBodyText(namespace, documentData.id);
-                console.info(content);
                 setDocumentContent(content);
             } finally {
 
