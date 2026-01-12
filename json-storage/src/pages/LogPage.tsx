@@ -5,19 +5,22 @@ import "../css/log-page.css";
 import { useState } from "react";
 import { Sidebar } from "../components/sidebar";
 import { Header } from "../components/header";
+import { API_BASE_URL } from "../config/api";
 
 
-const kibana = {
-  title: "Kibana Logs",
-  subtitle: "Event log",
-  description: "Open the full log stream in Kibana Discover",
-  href: "http://5.159.101.21:5601/app/discover#",
-  icon: "📊",
-  color: "#8B5CF6", // можешь поменять (например #3B82F6)
-};
+
 
 export function LogPage() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+
+  const kibana = {
+    title: "Kibana Logs",
+    subtitle: "Event log",
+    description: "Open the full log stream in Kibana Discover",
+    href: `http://${API_BASE_URL}:5601/app/discover#`,
+    icon: "📊",
+    color: "#8B5CF6",
+  };
 
   return (
     <div className="page-container">

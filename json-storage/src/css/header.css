@@ -1,6 +1,6 @@
 .header-container {
   display: grid;
-  grid-template-columns: 40px 1fr 40px; /* бургер | центр | симметричный столбец справа */
+  grid-template-columns: 40px 1fr 40px;
   align-items: center;
   height: 30px;
   padding: 0 8px;
@@ -8,7 +8,6 @@
   border: 1px solid #b3b3b3;
 }
 
-/* Центрируем текст в среднем столбце */
 .header-title {
   grid-column: 2;
   text-align: center;
@@ -17,7 +16,6 @@
   color: white;  
 }
 
-/* Аккуратная квадратная кнопка с иконкой */
 .header-burger-button {
   aspect-ratio: 1 / 1;
   grid-column: 1;

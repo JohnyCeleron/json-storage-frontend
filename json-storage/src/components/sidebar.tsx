@@ -67,7 +67,6 @@ function NamespacesButton({ sidebarRef }: { sidebarRef: React.RefObject<HTMLDivE
 
   const toggleDropdown = () => setIsOpen((v) => !v);
 
-  // загрузка namespaces при открытии
   useEffect(() => {
     if (!isOpen) return;
 
@@ -122,22 +121,18 @@ function NamespacesButton({ sidebarRef }: { sidebarRef: React.RefObject<HTMLDivE
       const target = event.target as Node;
       const clickInsideSidebar = sidebarEl.contains(target);
 
-      // Клик ВНЕ sidebar
       if (!clickInsideSidebar) {
-        // не даём внешним обработчикам закрыть sidebar
         event.stopPropagation();
         (event as any).stopImmediatePropagation?.();
 
-        // если что-то введено — добавляем, но dropdown НЕ закрываем
         if (!isAdding && newName.trim()) {
           void onAdd();
         }
 
-        return; // dropdown остаётся открытым
+        return;
       }
     };
 
-    // ВАЖНО: capture=true, чтобы перехватить до backdrop/overlay
     document.addEventListener("mousedown", handler, true);
     return () => document.removeEventListener("mousedown", handler, true);
   }, [isOpen, newName, isAdding, sidebarRef]);
@@ -188,7 +183,7 @@ function NamespacesButton({ sidebarRef }: { sidebarRef: React.RefObject<HTMLDivE
               onChange={(e) => setNewName(e.target.value)}
               placeholder="new-namespace"
               onKeyDown={(e) => {
-                if (e.key === "Enter") onAdd(); // опционально оставил Enter
+                if (e.key === "Enter") onAdd();
               }}
               disabled={isAdding}
             />

@@ -3,9 +3,9 @@
 .scrollable-section {
   display: flex;
   flex-direction: column;
-  height: 100%; /* займет всю доступную высоту родителя */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #b4b7bca0 transparent; /* Firefox */
+  height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: #b4b7bca0 transparent;
 }
 
 .scrollable-section::-webkit-scrollbar {
@@ -24,12 +24,11 @@
 .scrollable-content {
   flex: 1;
   overflow-y: auto;
-  min-height: 0; /* важно для правильной работы flex */
+  min-height: 0;
 }
 
-/* Если нужно ограничить максимальную высоту */
 .scrollable-section {
-  max-height: 70vh; /* 70% от высоты окна */
+  max-height: 70vh;
 }
 
 .sidebar-container {
@@ -43,27 +42,27 @@
     flex-direction: column;
     transition: transform 0.3s ease-in-out;
 
-    z-index: 1000;        /* ✅ ВАЖНО: сайдбар всегда сверху */
-    isolation: isolate;   /* ✅ создаёт свой stacking context */
+    z-index: 1000;
+    isolation: isolate;
 }
 
 .sidebar-hidden {
-    transform: translateX(-100%); /* уезжает за левый край */
+    transform: translateX(-100%);
 }
 
 .sidebar-top {
-    height: 32px; /* Фиксированная высота */
+    height: 32px;
     background-color: #1d1d1d;
     display: flex;
-    flex-shrink: 0; /* Чтобы не сжималась */
+    flex-shrink: 0;
     border-top-right-radius: 7px;
-    justify-content: flex-end; /* ← ДОБАВЬТЕ ЭТУ СТРОЧКУ */
-    align-items: center; /* ← и эту для вертикального выравнивания */
+    justify-content: flex-end;
+    align-items: center;
     padding-right: 7px;
 }
 
 .sidebar-bottom {
-    flex: 1; /* Занимает всё оставшееся пространство */
+    flex: 1;
     background-color: #2d2d2d;
     padding-top: 10px;
     display: flex;
@@ -75,7 +74,6 @@
     outline: none;
 }
 
-/*CLOSE BUTTON*/
 
 .close-button:focus {
     outline: none;
@@ -92,7 +90,7 @@
 .close-button {
     color: #4c4c4c;
     background-color: #1d1d1d;
-    width: 18px; /* компромиссный размер */
+    width: 18px;
     height: 18px;
     outline: none;
     display: flex;
@@ -105,11 +103,10 @@
 .close-glyph {
   display: block;
   transform: rotate(45deg);
-  font-size: 18px; /* уменьшили соответственно */
+  font-size: 18px;
   line-height: 1;
 }
 
-/*OTHER BUTTONS*/
 
 .sidebar-button {
     background: #343434;
@@ -142,7 +139,7 @@
 .namespaces-dropdown {
   display: flex;
   flex-direction: column;
-  align-items: center;   /* центрируем содержимое */
+  align-items: center;
   padding: 10px;
   max-height: calc(100vh - 140px);;
   overflow-y: auto;
@@ -155,12 +152,11 @@
   justify-content: center;
   height: 26px;
 
-  /* ширина уже и по центру */
-  width: 85%;            /* или 220px / 14rem — как нравится */
-  max-width: 240px;      /* ограничитель, если нужно */
+  width: 85%;
+  max-width: 240px;
   min-width: 140px;
 
-  margin: 3px 0;         /* вертикальный зазор */
+  margin: 3px 0;
   border-radius: 5px;
   border: none;
   background: #202020;
@@ -173,14 +169,13 @@
 }
 
 .sidebar-bottom {
-  overflow: visible;          /* чтобы выпадашка не обрезалась */
+  overflow: visible;
 }
 
 .sidebar-button {
   display: block;
   width: 100%;
 }
-/* ===== Add namespace row ===== */
 
 .namespace-add-row {
   width: 85%;
@@ -241,7 +236,6 @@
   opacity: 0.55;
 }
 
-/* error + loading */
 
 .namespace-error {
   width: 85%;

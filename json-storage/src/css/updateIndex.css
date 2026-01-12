@@ -22,14 +22,14 @@
   flex-direction: column;
   gap: 15px;
 
-  box-sizing: border-box;   /* <<< фикс */
+  box-sizing: border-box;
 }
 
 .modal-textarea {
   width: 100%;
   height: 320px;
 
-  box-sizing: border-box;   /* <<< фиксирует выход за границы */
+  box-sizing: border-box;
 
   padding: 15px;
   border-radius: 5px;
@@ -42,7 +42,7 @@
   font-size: 14px;
   outline: none;
 
-  tab-size: 4;        /* <<< вот это уменьшает табуляцию */
+  tab-size: 4;
   -moz-tab-size: 4;
 }
 
@@ -56,8 +56,8 @@
 
 .cancel-button,
 .accept-button {
-    width: 120px;      /* ширина */
-    height: 25px;      /* высота */
+    width: 120px;
+    height: 25px;
     border-radius: 20px;
     background-color: #555555;
     border: none;

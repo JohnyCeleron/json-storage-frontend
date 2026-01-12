@@ -17,10 +17,6 @@
   transition: opacity 350ms ease;
 }
 
-.toast--top {
-  /* оставил класс на будущее, если захочешь разные позиции */
-}
-
 .toast--fadeout {
   opacity: 0;
 }

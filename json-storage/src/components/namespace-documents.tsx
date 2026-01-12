@@ -18,25 +18,25 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const a = useNamespaceDocumentsActions(namespaceName);
+  const action = useNamespaceDocumentsActions(namespaceName);
 
   const location = useLocation();
 
   useEffect(() => {
     const st = (location.state as any)?.listState;
-    if (st) void a.restoreListState(st);
+    if (st) void action.restoreListState(st);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="namespace-documents-container">
-      {a.toast && (
+      {action.toast && (
         <div
-          className={`toast toast--top ${a.toast.type ?? "error"} ${
-            a.toast.fading ? "toast--fadeout" : ""
+          className={`toast toast--top ${action.toast.type ?? "error"} ${
+            action.toast.fading ? "toast--fadeout" : ""
           }`}
         >
-          {a.toast.message}
+          {action.toast.message}
         </div>
       )}
 
@@ -45,7 +45,7 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
         ref={fileInputRef}
         onChange={(e) => {
           const file = e.target.files?.[0] ?? null;
-          void a.uploadSelectedFile(file);
+          void action.uploadSelectedFile(file);
           if (e.target) e.target.value = "";
         }}
         accept=".json,application/json"
@@ -53,12 +53,12 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
       />
 
       <UpdateIndexModal
-        isOpen={a.isModalOpen}
-        onClose={a.closeUpdateIndexModal}
-        onAccept={a.acceptUpdateIndex}
-        value={a.indexText}
-        onChange={a.setIndexText}
-        loading={a.isSchemaSaving}
+        isOpen={action.isModalOpen}
+        onClose={action.closeUpdateIndexModal}
+        onAccept={action.acceptUpdateIndex}
+        value={action.indexText}
+        onChange={action.setIndexText}
+        loading={action.isSchemaSaving}
       />
 
       <div className="namespace-header">
@@ -66,12 +66,12 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
           type="text"
           className="json-path-search-input"
           placeholder="JSON Path Search"
-          value={a.searchValue}
-          onChange={(e) => a.setSearchValue(e.target.value)}
+          value={action.searchValue}
+          onChange={(e) => action.setSearchValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              void a.runSearch();
+              void action.runSearch();
             }
           }}
         />
@@ -80,26 +80,26 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
           <button
             type="button"
             className="update-index-button"
-            onClick={a.openUpdateIndexModal}
-            disabled={a.progressIndex !== null}
+            onClick={action.openUpdateIndexModal}
+            disabled={action.progressIndex !== null}
           >
-            {a.progressIndex !== null ? `${a.progressIndex}%` : 'Update Index'}
+            {action.progressIndex !== null ? `${action.progressIndex}%` : 'Update Index'}
           </button>
 
           <button
             type="button"
             className="add-document-button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={a.isUploading}
+            disabled={action.isUploading}
           >
-            {a.isUploading ? "Loading..." : "Add"}
+            {action.isUploading ? "Loading..." : "Add"}
           </button>
         </div>
       </div>
 
-      {a.selectedFile && !a.isUploading && (
+      {action.selectedFile && !action.isUploading && (
         <div className="selected-file-info">
-          Выбран файл: <strong>{a.selectedFile.name}</strong>
+          Выбран файл: <strong>{action.selectedFile.name}</strong>
         </div>
       )}
 
@@ -113,7 +113,7 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
             <div className="column-actions"></div>
           </div>
 
-          {(a.documents ?? []).map((doc) => (
+          {(action.documents ?? []).map((doc) => (
             <div key={doc.id} className="document-row">
               <div className="document-name">{doc.documentName}</div>
               <div className="document-date">{doc.createdAt}</div>
@@ -126,8 +126,7 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
                       state: { 
                         document: doc,
                         returnTo: location.pathname + location.search,
-                        // снимок состояния списка
-                        listState: a.getListState(), 
+                        listState: action.getListState(), 
                       },
                     })
                   }
@@ -137,7 +136,7 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
 
                 <button
                   className="document-remove-button"
-                  onClick={() => void a.deleteDoc(doc.id)}
+                  onClick={() => void action.deleteDoc(doc.id)}
                 >
                   Remove
                 </button>
@@ -145,20 +144,20 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
             </div>
           ))}
 
-          {a.isListLoading && <LoadingSpinner />}
+          {action.isListLoading && <LoadingSpinner />}
         </div>
 
         <div className="document-paginator-container">
           <div className="page-info">
-            Page: {a.page} / {a.totalPages}
+            Page: {action.page} / {action.totalPages}
           </div>
 
           <div className="pagination-buttons">
             <button
               type="button"
               className="back-page-button"
-              onClick={a.goBack}
-              disabled={a.backDisabled}
+              onClick={action.goBack}
+              disabled={action.backDisabled}
             >
               Back
             </button>
@@ -166,8 +165,8 @@ export function NamespaceDocuments({ namespaceName }: { namespaceName: string })
             <button
               type="button"
               className="next-page-button"
-              onClick={a.goNext}
-              disabled={a.nextDisabled}
+              onClick={action.goNext}
+              disabled={action.nextDisabled}
             >
               Next
             </button>

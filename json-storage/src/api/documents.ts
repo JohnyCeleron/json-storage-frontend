@@ -78,6 +78,21 @@ export async function apiSearchObjects(
   return (await resp.json()) as SearchResponseItem[];
 }
 
+export async function getObjectBodyText(namespace: string, id: string): Promise<string> {
+  const response = await fetch(
+    `http://${API_BASE_URL}:8080/ns/${namespace}/objects/${id}/body?object_id=${id}`,
+    {
+      method: "GET",
+      headers: [["Accept", "application/json"]],
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to get object body: ${response.statusText}`);
+  }
+
+  return response.text();
+}
 
 export async function apiUploadDocument(namespace: string, documentName: string, jsonData: any, opts: FetchOpts = {}) {
   const url = buildUrl(API_BASE_URL, `/ns/${namespace}/objects`, { document_name: documentName });

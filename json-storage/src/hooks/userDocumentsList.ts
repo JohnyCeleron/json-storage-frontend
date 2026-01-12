@@ -9,7 +9,6 @@ export function useDocumentsList(namespaceName: string, cursor: string | null, e
   const [totalCount, setTotalCount] = useState(0);
   const [isListLoading, setIsListLoading] = useState(false);
 
-  // Abort previous inflight request on next load/unmount
   const controllerRef = useRef<AbortController | null>(null);
 
   const applyPageData = useCallback((data: { items: any[]; count: number }) => {
@@ -50,7 +49,6 @@ export function useDocumentsList(namespaceName: string, cursor: string | null, e
       try {
         await load();
       } catch (e: any) {
-        // Важно: AbortError — не ошибка для пользователя
         if (!mounted) return;
         if (e?.name === "AbortError") return;
         throw e;

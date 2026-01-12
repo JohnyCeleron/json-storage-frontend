@@ -3,27 +3,13 @@ import { Header } from "../components/header";
 import { Sidebar } from "../components/sidebar";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { DocumentData } from "../interfaces/document";
+import { getObjectBodyText } from "../api/documents";
 
-async function getObjectBodyText(namespace: string, id: string): Promise<string> {
-  const response = await fetch(
-    `http://5.159.101.21:8080/ns/${namespace}/objects/${id}/body?object_id=${id}`,
-    {
-      method: "GET",
-      headers: [["Accept", "application/json"]],
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to get object body: ${response.statusText}`);
-  }
-
-  return response.text();
-}
 
 type NavState = {
   document?: DocumentData;
   returnTo?: string;
-  listState?: any; // можешь типизировать
+  listState?: any;
 };
 
 export function DocumentPage() {
@@ -50,7 +36,7 @@ export function DocumentPage() {
     if (navState.returnTo) {
       navigate(navState.returnTo, {
         replace: true,
-        state: { listState: navState.listState }, // ✅ вернём снимок обратно
+        state: { listState: navState.listState },
       });
       return;
     }
@@ -74,7 +60,6 @@ export function DocumentPage() {
     void load();
   }, [namespace, documentData?.id]);
 
-  // ✅ если пользователь открыл страницу напрямую/обновил — state может быть пустой
   if (!documentData) {
     return (
       <div className="page">

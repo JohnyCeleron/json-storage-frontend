@@ -2,13 +2,12 @@
 
 .document-page-layout {
     display: flex;
-    height: calc(100vh - 50px); /* учёт высоты Header */
+    height: calc(100vh - 50px);
     box-sizing: border-box;
     padding: 10px;
     gap: 10px;
 }
 
-/* Левая панель — фиксированная */
 .document-info-container {
     flex: 0 0 350px;
     background: #3b3b3b;
@@ -19,7 +18,6 @@
     overflow-y: auto;
 }
 
-/* Правая панель — растягивается */
 .document-content-container {
     flex: 1;
     background: #ffffff;
@@ -40,7 +38,7 @@
 
 .info-row {
     display: grid;
-    grid-template-columns: 140px 1fr; /* ширина лейбла + остальное */
+    grid-template-columns: 140px 1fr;
     padding: 6px 0;
     align-items: center;
 }
@@ -49,15 +47,15 @@
     font-weight: 700;
     font-size: 12px;
     color: #c0c0c0;
-    text-align: left; /* по левому */
+    text-align: left;
 }
 
 .info-value {
-    text-align: left; /* по правому */
+    text-align: left;
     font-weight: 500;
     font-size: 12px;
     color: #c0c0c0;
-    word-break: break-all; /* чтобы длинные хэши не ломали layout */
+    word-break: break-all;
 }
 
 .document-row {
@@ -103,28 +101,25 @@
   background: #2e761c;
 }
 
-/* Back button: снизу по центру, серый стиль как у других кнопок */
 .document-back-button {
   position: absolute;
   left: 50%;
-  bottom: 15px;              /* подстрой при необходимости */
+  bottom: 15px;
   transform: translateX(-50%);
 
-  /* форма/типографика как у update-index-button / add-document-button */
   padding: 8px 16px;
   width: 120px;
   min-width: 120px;
   height: 32px;
   border-radius: 4px;
-  border: none;      /* убрать контур/рамку */
-  outline: none;     /* убрать обводку */
+  border: none;
+  outline: none;
 
   font-family: 'Afacad', sans-serif;
   font-weight: 500;
 
   cursor: pointer;
 
-  /* серый цвет */
   background: #b5b5b5;
   color: #222;
 }
@@ -152,8 +147,8 @@
 .namespace-documents-container hr {
   width: 100%;
   border: none;
-  border-bottom: 1px solid #ccc;  /* толщина и цвет полоски */
-  margin: 5px 0;                 /* отступы сверху/снизу */
+  border-bottom: 1px solid #ccc;
+  margin: 5px 0;
 }
 
 .documents-container {
@@ -181,14 +176,12 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Documents - слева */
 .namespace-header::before {
   content: "Documents";
   font-weight: bold;
   flex-shrink: 0;
 }
 
-/* Поле поиска - посередине */
 .json-path-search-input {
   flex: 1;
   width: 60%;
@@ -214,14 +207,12 @@
   color: #B1B1B1;
 }
 
-/* Контейнер для кнопок - справа */
 .namespace-header > .button-container {
   display: flex;
   gap: 250px;
   flex-shrink: 0;
 }
 
-/* Стили для кнопок - одинаковой ширины */
 .update-index-button,
 .add-document-button {
   padding: 8px 16px;
@@ -231,9 +222,9 @@
   border-radius: 4px;
   margin: 2px;
   gap: 10px;
-  min-width: 120px; /* Одинаковая минимальная ширина */
-  width: 120px; /* Фиксированная ширина */
-  flex-shrink: 0; /* Запрет сжатия */
+  min-width: 120px;
+  width: 120px;
+  flex-shrink: 0;
   font-family: 'Afacad', sans-serif;
   font-weight: 500;
 }
@@ -270,9 +261,9 @@
 }
 
 .page-info {
-    margin-right: auto; /* Прижимает к левому краю */
+    margin-right: auto;
 }
 
 .pagination-buttons {
-    margin-left: auto; /* Прижимает к правому краю */
+    margin-left: auto;
 }
