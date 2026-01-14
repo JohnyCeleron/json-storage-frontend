@@ -5,7 +5,7 @@ import { Header } from '../components/header.tsx';
 import { Sidebar } from '../components/sidebar.tsx';
 import { useState } from 'react';
 import '../css/metric-page.css';
-import { API_BASE_URL } from '../config/api.ts';
+import { API_METRICS_URL } from '../config/api.ts';
 
 export function MetricPage() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
@@ -16,7 +16,7 @@ export function MetricPage() {
       title: 'RPS',
       subtitle: 'Requests Per Second',
       description: 'Number of requests per second',
-      href: `http://${API_BASE_URL}:3000/d/rps`,
+      href: `${API_METRICS_URL}/d/rps`,
       icon: '📊',
       color: '#10B981',
     },
@@ -25,7 +25,7 @@ export function MetricPage() {
       title: 'Latency',
       subtitle: 'Response time',
       description: 'System delays and response time',
-      href: `http://${API_BASE_URL}:3000/d/latency`,
+      href: `${API_METRICS_URL}/d/latency`,
       icon: '⚡',
       color: '#3B82F6',
     },
@@ -34,7 +34,7 @@ export function MetricPage() {
       title: 'Elasticsearch',
       subtitle: 'Search cluster',
       description: 'Elasticsearch index and node metrics',
-      href: `http://${API_BASE_URL}:3000/d/elastic`,
+      href: `${API_METRICS_URL}/d/elastic`,
       icon: '🔍',
       color: '#F59E0B',
     },
@@ -43,7 +43,7 @@ export function MetricPage() {
       title: 'PostgreSQL',
       subtitle: 'Database',
       description: 'Database performance and statistics',
-      href: `http://${API_BASE_URL}:3000/d/postgres`,
+      href: `${API_METRICS_URL}/d/postgres`,
       icon: '🗄️',
       color: '#8B5CF6',
     },
@@ -52,7 +52,7 @@ export function MetricPage() {
       title: 'Errors',
       subtitle: 'System errors',
       description: 'Error and exception statistics',
-      href: `http://${API_BASE_URL}:3000/d/errors`,
+      href: `${API_METRICS_URL}/d/errors`,
       icon: '⚠️',
       color: '#EF4444',
     },

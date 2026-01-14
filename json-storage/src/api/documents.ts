@@ -80,7 +80,7 @@ export async function apiSearchObjects(
 
 export async function getObjectBodyText(namespace: string, id: string): Promise<string> {
   const response = await fetch(
-    `http://${API_BASE_URL}:8080/ns/${namespace}/objects/${id}/body?object_id=${id}`,
+    `${API_BASE_URL}/ns/${namespace}/objects/${id}/body?object_id=${id}`,
     {
       method: "GET",
       headers: [["Accept", "application/json"]],

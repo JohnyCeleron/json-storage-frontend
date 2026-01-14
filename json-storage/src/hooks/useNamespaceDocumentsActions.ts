@@ -410,7 +410,7 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
 
       try {
-        const response = await fetch(`http://${API_BASE_URL}:8080/ns/${namespace}/progress-bar`, {
+        const response = await fetch(`${API_BASE_URL}/ns/${namespace}/progress-bar`, {
           method: "GET",
           headers: { accept: "application/json" },
         });

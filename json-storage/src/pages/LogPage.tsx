@@ -5,7 +5,7 @@ import "../css/log-page.css";
 import { useState } from "react";
 import { Sidebar } from "../components/sidebar";
 import { Header } from "../components/header";
-import { API_BASE_URL } from "../config/api";
+import { API_LOGS_URL } from "../config/api";
 
 
 
@@ -17,7 +17,7 @@ export function LogPage() {
     title: "Kibana Logs",
     subtitle: "Event log",
     description: "Open the full log stream in Kibana Discover",
-    href: `http://${API_BASE_URL}:5601/app/discover#`,
+    href: `${API_LOGS_URL}/app/discover#`,
     icon: "📊",
     color: "#8B5CF6",
   };
