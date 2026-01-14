@@ -60,7 +60,7 @@ export async function apiSearchObjects(
 ): Promise<SearchResponseItem[]> {
   const url = buildUrl(API_BASE_URL, `/ns/${namespace}/search`, {
     size: String(100),
-    from_: String(0), // ✅ всегда с нуля
+    from_: String(0),
   });
 
   const resp = await fetch(url.toString(), {

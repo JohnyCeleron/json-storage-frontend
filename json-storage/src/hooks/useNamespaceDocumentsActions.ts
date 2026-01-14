@@ -1,456 +1,129 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type MutableRefObject,
-} from "react";
-import { PAGINATION, TOAST_TIMINGS } from "../constants/ui";
-import {
-  apiDeleteDocument,
-  apiFetchDocumentsPage,
-  apiSearchObjects,
-  apiSetSearchSchema,
-  apiUploadDocument,
-} from "../api/documents";
-import { mapApiToUI, mapSearchItemToUI } from "../utils/documents";
-import { readJsonFile } from "../utils/files";
-import type { DocumentUI, DocumentListResponse } from "../types/documents";
-import { API_BASE_URL } from "../config/api";
+import { useCallback, useEffect, useState } from "react";
+import type { DocumentUI } from "../types/documents";
 
-type ToastState = { message: string; type?: "error" | "success"; fading?: boolean } | null;
-
-function isAbortError(e: any) {
-  return e?.name === "AbortError";
-}
-
-type PaginationType = "offset" | "cursor";
+import { useToastTimers } from "./useToast";
+import { useAbortControllers } from "./useAbortController";
+import { useDocumentsPagination } from "./useDocumentsPagination";
+import { useDocumentsList } from "./useDocumentsList";
+import { useDocumentsSearch } from "./useDocumentsSearch";
+import { useDocumentUpload } from "./useDocumentUpload";
+import { useDocumentDelete } from "./useDocumentDelete";
+import { useSearchSchemaUpdate } from "./useSearchSchemaUpdate";
 
 export type DocumentsListState = {
   searchValue: string;
   isSearchMode: boolean;
-  paginationType: PaginationType;
+  paginationType: "offset" | "cursor";
   currentOffset: number;
   cursor: string | null;
   cursorStack: (string | null)[];
 };
 
-
 export function useNamespaceDocumentsActions(namespaceName: string) {
-  const [toast, setToast] = useState<ToastState>(null);
+  const { toast, showToast } = useToastTimers();
+  const {
+    listAbortRef,
+    searchAbortRef,
+    mutAbortRef,
+    abortList,
+    abortSearch,
+    abortMutations,
+    newController,
+  } = useAbortControllers();
 
   const [documents, setDocuments] = useState<DocumentUI[]>([]);
-  const [isListLoading, setIsListLoading] = useState(false);
-
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
   const [searchValue, setSearchValue] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [indexText, setIndexText] = useState("");
-  const [isSchemaSaving, setIsSchemaSaving] = useState(false);
-
-  const [progressIndex, setProgressIndex] = useState<null | number>(null);
-
-  const [paginationType, setPaginationType] = useState<PaginationType>("cursor");
-  const [currentOffset, setCurrentOffset] = useState(0);
-
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [cursorStack, setCursorStack] = useState<(string | null)[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-
   const [searchAll, setSearchAll] = useState<DocumentUI[]>([]);
 
-  const page = useMemo(() => {
-    if (paginationType === "cursor") return cursorStack.length + 1;
-    return Math.floor(currentOffset / PAGINATION.PAGE_SIZE) + 1;
-  }, [paginationType, cursorStack.length, currentOffset]);
-
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(totalCount / PAGINATION.PAGE_SIZE)),
-    [totalCount]
-  );
-
-  const backDisabled =
-    isListLoading ||
-    isSearching ||
-    (paginationType === "cursor" ? cursorStack.length === 0 : currentOffset === 0);
-
-  const nextDisabled =
-    isListLoading ||
-    isSearching ||
-    (paginationType === "cursor"
-      ? !hasNext || !nextCursor
-      : currentOffset + PAGINATION.PAGE_SIZE >= totalCount);
-
-  const fadeTimerRef = useRef<number | null>(null);
-  const hideTimerRef = useRef<number | null>(null);
-
-  const clearToastTimers = () => {
-    if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
-    if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
-    fadeTimerRef.current = null;
-    hideTimerRef.current = null;
-  };
-
-  useEffect(() => clearToastTimers, []);
-
-  const showToast = useCallback((message: string, type: "error" | "success" = "error") => {
-    clearToastTimers();
-    setToast({ message, type });
-
-    fadeTimerRef.current = window.setTimeout(() => {
-      setToast((prev) => (prev ? { ...prev, fading: true } : prev));
-    }, TOAST_TIMINGS.VISIBLE_MS);
-
-    hideTimerRef.current = window.setTimeout(() => {
-      setToast(null);
-    }, TOAST_TIMINGS.VISIBLE_MS + TOAST_TIMINGS.FADE_MS);
-  }, []);
-
-  const listAbortRef = useRef<AbortController | null>(null);
-  const searchAbortRef = useRef<AbortController | null>(null);
-  const mutAbortRef = useRef<AbortController | null>(null);
-
-  const abortList = () => listAbortRef.current?.abort();
-  const abortSearch = () => searchAbortRef.current?.abort();
-  const abortMutations = () => mutAbortRef.current?.abort();
-
-  const newController = (ref: MutableRefObject<AbortController | null>) => {
-    ref.current?.abort();
-    const c = new AbortController();
-    ref.current = c;
-    return c;
-  };
-
-  const applyListData = (data: DocumentListResponse) => {
-    const all = (data.items ?? []).map(mapApiToUI);
-    const hasNextPage = all.length > PAGINATION.PAGE_SIZE;
-    const visible = all.slice(0, PAGINATION.PAGE_SIZE);
-    const computedNextCursor = hasNextPage ? visible[visible.length - 1]?.id ?? null : null;
-
-    setDocuments(visible);
-    setHasNext(hasNextPage);
-    setNextCursor(computedNextCursor);
-    setTotalCount(data.count ?? 0);
-  };
-
-  const listReqIdRef = useRef(0);
-
-  const loadCurrentPage = useCallback(
-    async (cursorOverride?: string | null) => {
-      if (isSearchMode) return;
-
-      const reqId = ++listReqIdRef.current;
-      const c = newController(listAbortRef);
-      setIsListLoading(true);
-
-      const cursorToUse = cursorOverride !== undefined ? cursorOverride : cursor;
-
-      try {
-        const data = await apiFetchDocumentsPage(namespaceName, cursorToUse, { signal: c.signal });
-        applyListData(data);
-      } catch (e: any) {
-        if (isAbortError(e)) return;
-        console.error(e);
-        showToast("fetch documents failed", "error");
-      } finally {
-        if (listReqIdRef.current === reqId) setIsListLoading(false);
-      }
-    },
-    [namespaceName, cursor, isSearchMode, showToast]
-  );
-
-  const exitSearchMode = useCallback(() => {
-    abortSearch();
-    setIsSearchMode(false);
-
-    setPaginationType("cursor");
-
-    setSearchAll([]);
-    setCurrentOffset(0);
-
-    setCursor(null);
-    setCursorStack([]);
-    setHasNext(false);
-    setNextCursor(null);
-  }, []);
-
-  const runSearch = useCallback(async () => {
-    const filters = searchValue.trim();
-
-    if (!filters) {
-      exitSearchMode();
-      return;
-    }
-
-    const c = newController(searchAbortRef);
-    setIsSearching(true);
-
-    try {
-      const result = await apiSearchObjects(namespaceName, filters);
-
-      const mapped = (result ?? [])
-        .map(mapSearchItemToUI)
-        .filter((d): d is DocumentUI => Boolean(d?.id));
-
-      setIsSearchMode(true);
-      setPaginationType("offset");
-      setCursor(null);
-      setCursorStack([]);
-      setNextCursor(null);
-      setCurrentOffset(0);
-      setSearchAll(mapped);
-      setTotalCount(mapped.length);
-      setHasNext(mapped.length > PAGINATION.PAGE_SIZE);
-      setDocuments(mapped.slice(0, PAGINATION.PAGE_SIZE));
-
-      if (mapped.length === 100) {
-        showToast("Found 100 results (showing first 100). Refine filters to narrow down.", "success");
-      } else {
-        showToast(`Found ${mapped.length} document(s)`, "success");
-      }
-    } catch (e: any) {
-      if (isAbortError(e)) return;
-      console.error(e);
-      showToast("Search failed", "error");
-    } finally {
-      setIsSearching(false);
-    }
-  }, [namespaceName, searchValue, exitSearchMode, showToast]);
-
-  useEffect(() => {
-    if (!isSearchMode) return;
-    if (paginationType !== "offset") return;
-
-    const start = currentOffset;
-    const end = currentOffset + PAGINATION.PAGE_SIZE;
-
-    setDocuments(searchAll.slice(start, end));
-    setTotalCount(searchAll.length);
-    setHasNext(end < searchAll.length);
-    setNextCursor(null);
-  }, [isSearchMode, paginationType, currentOffset, searchAll]);
-
-
-  const goNext = useCallback(() => {
-    if (nextDisabled) return;
-
-    if (paginationType === "cursor") {
-      setCursorStack((prev) => [...prev, cursor]);
-      setCursor(nextCursor);
-    } else {
-      setCurrentOffset((prev) => prev + PAGINATION.PAGE_SIZE);
-    }
-  }, [nextDisabled, paginationType, cursor, nextCursor]);
-
-  const goBack = useCallback(() => {
-    if (backDisabled) return;
-
-    if (paginationType === "cursor") {
-      setCursorStack((prev) => {
-        const newStack = prev.slice(0, -1);
-        const prevCursor = prev[prev.length - 1] ?? null;
-        setCursor(prevCursor);
-        return newStack;
-      });
-    } else {
-      setCurrentOffset((prev) => Math.max(0, prev - PAGINATION.PAGE_SIZE));
-    }
-  }, [backDisabled, paginationType]);
-
-  const uploadSelectedFile = useCallback(
-    async (file: File | null) => {
-      if (!file) return;
-
-      setSelectedFile(file);
-      setIsUploading(true);
-
-      const c = newController(mutAbortRef);
-
-      try {
-        const jsonData = await readJsonFile(file);
-        await apiUploadDocument(namespaceName, file.name, jsonData, { signal: c.signal });
-
-        showToast(`Document "${file.name}" uploaded`, "success");
-
-        abortSearch();
-        setIsSearchMode(false);
-        setSearchValue("");
-        setPaginationType("cursor");
-        setSearchAll([]);
-        setCurrentOffset(0);
-
-        setCursor(null);
-        setCursorStack([]);
-
-        await loadCurrentPage(null);
-      } catch (e: any) {
-        if (isAbortError(e)) return;
-        console.error(e);
-        showToast("Upload failed", "error");
-      } finally {
-        setIsUploading(false);
-        setSelectedFile(null);
-      }
-    },
-    [namespaceName, showToast, loadCurrentPage]
-  );
-
-  const deleteDoc = useCallback(
-    async (docId: string) => {
-      const c = newController(mutAbortRef);
-
-      try {
-        await apiDeleteDocument(namespaceName, docId, { signal: c.signal });
-        showToast("Document removed", "success");
-        if (isSearchMode && paginationType === "offset") {
-          setSearchAll((prev) => {
-            const next = prev.filter((d) => d.id !== docId);
-
-            const pageSize = PAGINATION.PAGE_SIZE;
-            const maxOffset =
-              next.length === 0 ? 0 : Math.floor((next.length - 1) / pageSize) * pageSize;
-
-            if (currentOffset > maxOffset) {
-              setCurrentOffset(maxOffset);
-            }
-            return next;
-          });
-
-          return;
-        }
-        const onlyOneOnPage = documents.length === 1;
-
-        if (paginationType === "cursor") {
-          const notFirstPage = cursorStack.length > 0;
-
-          if (onlyOneOnPage && notFirstPage) {
-            const prevCursor = cursorStack[cursorStack.length - 1] ?? null;
-            const newStack = cursorStack.slice(0, -1);
-
-            setCursorStack(newStack);
-            setCursor(prevCursor);
-
-            await loadCurrentPage(prevCursor);
-            return;
-          }
-          await loadCurrentPage(cursor);
-          return;
-        }
-        await loadCurrentPage(cursor);
-      } catch (e: any) {
-        if (isAbortError(e)) return;
-        console.error(e);
-        showToast("Delete failed", "error");
-      }
-    },
-    [
-      namespaceName,
-      showToast,
-      isSearchMode,
-      paginationType,
-      currentOffset,
-      documents.length,
-      cursorStack,
-      cursor,
-      loadCurrentPage,
-    ]
-  );
-
-  const openUpdateIndexModal = useCallback(() => {
-    setIndexText("");
-    setIsModalOpen(true);
-  }, []);
-
-  const closeUpdateIndexModal = useCallback(() => {
-    if (!isSchemaSaving) setIsModalOpen(false);
-  }, [isSchemaSaving]);
-
-  const acceptUpdateIndex = useCallback(async () => {
-    let schema: any;
-    try {
-      schema = JSON.parse(indexText);
-    } catch (e) {
-      console.error(e);
-      showToast("Invalid JSON in search schema", "error");
-      return;
-    }
-
-    const c = newController(mutAbortRef);
-    setIsSchemaSaving(true);
-
-    try {
-      await apiSetSearchSchema(namespaceName, schema, { signal: c.signal });
-      setIsModalOpen(false);
-      await pollProgressStatusSimple(namespaceName);
-    } catch (e: any) {
-      if (isAbortError(e)) return;
-      console.error(e);
-      showToast("Update index failed", "error");
-    } finally {
-      setIsSchemaSaving(false);
-    }
-  }, [namespaceName, indexText, showToast]);
-
-  const pollProgressStatusSimple = async (namespace: string) => {
-    const POLL_INTERVAL = 100;
-    const MAX_POLL_TIME = 30000;
-    const MAX_RETRIES = MAX_POLL_TIME / POLL_INTERVAL;
-
-    let retries = 0;
-
-    while (retries < MAX_RETRIES) {
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/ns/${namespace}/progress-bar`, {
-          method: "GET",
-          headers: { accept: "application/json" },
-        });
-
-        if (!response.ok) {
-          retries++;
-          continue;
-        }
-
-        const data = await response.json();
-        const { status, percent } = data;
-
-        setProgressIndex(percent);
-
-        if (status === "success") {
-          setProgressIndex(null);
-          showToast("Index updated successfully!", "success");
-          return;
-        }
-
-        if (status === "failed") {
-          setProgressIndex(null);
-          showToast("Index update failed", "error");
-          return;
-        }
-
-        if (status !== "progress" && status !== "init") {
-          setProgressIndex(null);
-          showToast(`Index update status: ${status}`, status === "success" ? "success" : "error");
-          return;
-        }
-      } catch (error) {
-      }
-
-      retries++;
-    }
-
-    setProgressIndex(null);
-    showToast("Index update timed out. Please check manually.", "error");
-  };
+  const pagination = useDocumentsPagination();
+
+  const { isListLoading, loadCurrentPage } = useDocumentsList({
+    namespaceName,
+    isSearchMode,
+    cursor: pagination.cursor,
+    listAbortRef,
+    newController,
+    applyListData: pagination.applyListData,
+    setDocuments,
+    showToast,
+  });
+
+  const search = useDocumentsSearch({
+    namespaceName,
+    searchAbortRef,
+    newController,
+
+    searchValue,
+    setSearchValue,
+    isSearchMode,
+    setIsSearchMode,
+
+    setPaginationType: pagination.setPaginationType,
+    setCursor: pagination.setCursor,
+    setCursorStack: pagination.setCursorStack,
+    setNextCursor: pagination.setNextCursor,
+
+    currentOffset: pagination.currentOffset,
+    setCurrentOffset: pagination.setCurrentOffset,
+
+    searchAll,
+    setSearchAll,
+
+    setTotalCount: pagination.setTotalCount,
+    setHasNext: pagination.setHasNext,
+    setDocuments,
+
+    showToast,
+    abortSearch,
+  });
+
+  const upload = useDocumentUpload({
+    namespaceName,
+    mutAbortRef,
+    newController,
+    showToast,
+    abortSearch,
+    setIsSearchMode,
+    setSearchValue,
+    resetToCursorMode: pagination.resetToCursorMode,
+    loadCurrentPage,
+    setSearchAll,
+  });
+
+  const del = useDocumentDelete({
+    namespaceName,
+    mutAbortRef,
+    newController,
+    showToast,
+    isSearchMode,
+    paginationType: pagination.paginationType,
+    currentOffset: pagination.currentOffset,
+    setCurrentOffset: pagination.setCurrentOffset,
+    documents,
+    cursor: pagination.cursor,
+    cursorStack: pagination.cursorStack,
+    setCursor: pagination.setCursor,
+    setCursorStack: pagination.setCursorStack,
+    setSearchAll,
+    loadCurrentPage,
+  });
+
+  const schemaUpdate = useSearchSchemaUpdate({
+    namespaceName,
+    mutAbortRef,
+    newController,
+    showToast,
+  });
+
+  const backDisabled = pagination.computeBackDisabled(isListLoading || search.isSearching);
+  const nextDisabled = pagination.computeNextDisabled(isListLoading || search.isSearching);
+
+  const page = pagination.page;
+  const totalPages = pagination.totalPages;
+
+  const goNext = useCallback(() => pagination.goNext(nextDisabled), [pagination, nextDisabled]);
+  const goBack = useCallback(() => pagination.goBack(backDisabled), [pagination, backDisabled]);
 
   useEffect(() => {
     abortList();
@@ -459,76 +132,27 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
     setSearchValue("");
     setIsSearchMode(false);
-
-    setCursor(null);
-    setCursorStack([]);
-    setHasNext(false);
-    setNextCursor(null);
-
     setDocuments([]);
-
-    setPaginationType("cursor");
-    setCurrentOffset(0);
     setSearchAll([]);
-  }, [namespaceName]);
+
+    pagination.resetToCursorMode();
+  }, [namespaceName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void loadCurrentPage();
     return () => abortList();
-  }, [loadCurrentPage]);
-
-  const refreshSearch = useCallback(
-    async (filters: string, keepOffset: boolean = true) => {
-      const q = filters.trim();
-      if (!q) return;
-
-      const c = newController(searchAbortRef);
-      setIsSearching(true);
-
-      try {
-        const result = await apiSearchObjects(namespaceName, q);
-        const mapped = (result ?? [])
-          .map(mapSearchItemToUI)
-          .filter((d): d is DocumentUI => Boolean(d?.id));
-
-        setIsSearchMode(true);
-        setPaginationType("offset");
-
-        setSearchAll(mapped);
-        setTotalCount(mapped.length);
-
-        if (!keepOffset) {
-          setCurrentOffset(0);
-          return;
-        }
-
-        const pageSize = PAGINATION.PAGE_SIZE;
-        const maxOffset =
-          mapped.length === 0 ? 0 : Math.floor((mapped.length - 1) / pageSize) * pageSize;
-
-        setCurrentOffset((prev) => (prev > maxOffset ? maxOffset : prev));
-      } catch (e: any) {
-        if (isAbortError(e)) return;
-        console.error(e);
-        showToast("Search refresh failed", "error");
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    [namespaceName, showToast]
-  );
-
+  }, [loadCurrentPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getListState = useCallback((): DocumentsListState => {
     return {
       searchValue,
       isSearchMode,
-      paginationType,
-      currentOffset,
-      cursor,
-      cursorStack,
+      paginationType: pagination.paginationType,
+      currentOffset: pagination.currentOffset,
+      cursor: pagination.cursor,
+      cursorStack: pagination.cursorStack,
     };
-  }, [searchValue, isSearchMode, paginationType, currentOffset, cursor, cursorStack]);
+  }, [searchValue, isSearchMode, pagination]);
 
   const restoreListState = useCallback(
     async (st: DocumentsListState | null | undefined) => {
@@ -541,73 +165,68 @@ export function useNamespaceDocumentsActions(namespaceName: string) {
 
       if (st.isSearchMode) {
         setIsSearchMode(true);
-        setPaginationType("offset");
+        pagination.resetToOffsetMode();
 
-        setCursor(null);
-        setCursorStack([]);
-        setNextCursor(null);
-        setCurrentOffset(0);
-        await refreshSearch(st.searchValue ?? "", false);
+        setSearchAll([]);
+        setDocuments([]);
 
-        setCurrentOffset(st.currentOffset ?? 0);
+        await search.refreshSearch(st.searchValue ?? "", false);
+        pagination.setCurrentOffset(st.currentOffset ?? 0);
         return;
       }
 
-
       setIsSearchMode(false);
-      setPaginationType("cursor");
+      pagination.resetToCursorMode();
 
-      setCurrentOffset(0);
-      setSearchAll([]);
-
-      setCursorStack(st.cursorStack ?? []);
-      setCursor(st.cursor ?? null);
+      pagination.setCursorStack(st.cursorStack ?? []);
+      pagination.setCursor(st.cursor ?? null);
 
       await loadCurrentPage(st.cursor ?? null);
     },
-    [abortList, abortSearch, refreshSearch, loadCurrentPage]
+    [abortList, abortSearch, loadCurrentPage, pagination, search]
   );
 
   return {
-    progressIndex,
+    progressIndex: schemaUpdate.progressIndex,
     toast,
-    paginationType,
+    showToast,
+
+    paginationType: pagination.paginationType,
     documents,
     isListLoading,
-    currentOffset,
-    selectedFile,
-    isUploading,
-    cursor,
-    cursorStack,
-    searchValue,
-    getListState,
-    restoreListState,
-    setSearchValue,
-    isSearching,
-    isSearchMode,
+    currentOffset: pagination.currentOffset,
+    cursor: pagination.cursor,
+    cursorStack: pagination.cursorStack,
 
     page,
     totalPages,
     backDisabled,
     nextDisabled,
 
-    isModalOpen,
-    indexText,
-    setIndexText,
-    isSchemaSaving,
-
-    showToast,
-    runSearch,
-    exitSearchMode,
+    searchValue,
+    setSearchValue,
+    isSearching: search.isSearching,
+    isSearchMode,
+    runSearch: search.runSearch,
+    exitSearchMode: search.exitSearchMode,
 
     goNext,
     goBack,
+    uploadSelectedFile: upload.uploadSelectedFile,
+    deleteDoc: del.deleteDoc,
 
-    uploadSelectedFile,
-    deleteDoc,
+    isModalOpen: schemaUpdate.isModalOpen,
+    indexText: schemaUpdate.indexText,
+    setIndexText: schemaUpdate.setIndexText,
+    isSchemaSaving: schemaUpdate.isSchemaSaving,
+    openUpdateIndexModal: schemaUpdate.openUpdateIndexModal,
+    closeUpdateIndexModal: schemaUpdate.closeUpdateIndexModal,
+    acceptUpdateIndex: schemaUpdate.acceptUpdateIndex,
 
-    openUpdateIndexModal,
-    closeUpdateIndexModal,
-    acceptUpdateIndex,
+    selectedFile: upload.selectedFile,
+    isUploading: upload.isUploading,
+
+    getListState,
+    restoreListState,
   };
 }

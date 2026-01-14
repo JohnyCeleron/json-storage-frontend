@@ -36,7 +36,6 @@ export function UpdateIndexModal({
 
                             onChange(newValue);
 
-                            // вернуть курсор после таба
                             setTimeout(() => {
                                 e.currentTarget.selectionStart = e.currentTarget.selectionEnd = start + 1;
                             });
